@@ -6,7 +6,7 @@ import {
 import { analyze, defaultApiBase } from './src/api';
 import { Board, Slide } from './src/Board';
 import { C, CLS } from './src/theme';
-import type { Payload, Game, DecisiveLoss } from './src/types';
+import type { Payload, Game } from './src/types';
 
 const sqOf = (uci: string) => [uci.slice(0, 2), uci.slice(2, 4)];
 
@@ -98,53 +98,56 @@ function Games({ payload, onOpen, onBack }: {
   const wins = payload.games.filter((g) => g.result === 'win').length;
   const losses = payload.games.filter((g) => g.result === 'loss').length;
   const draws = payload.games.length - wins - losses;
-  const decisive = payload.decisiveLosses.filter((e) => e.decisive);
+  const rc = (r: string) => (r === 'win' ? C.green : r === 'loss' ? C.red : C.muted);
+  const recent = payload.games[0];
+  const boardSize = Math.min(Dimensions.get('window').width - 36, 380);
+  const lastPly = recent && recent.plies.length ? recent.plies[recent.plies.length - 1] : null;
+  const recentFen = lastPly ? lastPly.fen : recent?.startFen;
+  const recentHl: Record<string, string> = {};
+  if (lastPly) {
+    recentHl[lastPly.uci.slice(0, 2)] = '#f6f069';
+    recentHl[lastPly.uci.slice(2, 4)] = '#f6f069';
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Pressable onPress={onBack} hitSlop={10}><Text style={styles.back}>‹ back</Text></Pressable>
       <Text style={styles.h1}>{payload.username}</Text>
       <Text style={styles.muted}>{payload.games.length} games · {wins}W {losses}L {draws}D</Text>
 
-      {decisive.length > 0 && (
+      {recent && recentFen && (
         <>
-          <Text style={styles.h2}>Why you lost</Text>
-          {decisive.map((e: DecisiveLoss, i) => (
-            <Pressable
-              key={i} style={styles.row}
-              onPress={() => e.gameIndex != null && onOpen(e.gameIndex, e.ply!)}
-            >
-              <View style={styles.rowMain}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
-                  {e.opponent} · {e.move_number}.{e.san}
-                </Text>
-                <Text style={styles.rowSub} numberOfLines={1}>
-                  {e.detail} · {e.win_before}→{e.win_after}%
-                </Text>
-              </View>
-              <Text style={styles.chev}>›</Text>
-            </Pressable>
-          ))}
+          <Text style={styles.h2}>Most recent</Text>
+          <Pressable onPress={() => onOpen(0, 0)}>
+            <Board fen={recentFen} flip={recent.perspective === 'black'} size={boardSize} highlights={recentHl} />
+            <View style={styles.recentMeta}>
+              <Text style={styles.rowTitle}>{recent.timeClass} · {recent.opponent}</Text>
+              <Text style={[styles.pill, { color: rc(recent.result) }]}>{recent.result} · review ›</Text>
+            </View>
+          </Pressable>
         </>
       )}
 
-      <Text style={styles.h2}>Patterns</Text>
-      {payload.findings.map((f, i) => (
-        <View key={i} style={styles.finding}>
-          <Text style={styles.findingH}>{f.headline}</Text>
-        </View>
-      ))}
-
-      <Text style={styles.h2}>Games</Text>
-      {payload.games.map((g, i) => (
-        <Pressable key={i} style={styles.row} onPress={() => onOpen(i, 0)}>
+      <Text style={styles.h2}>Past games</Text>
+      {payload.games.slice(1).map((g, i) => (
+        <Pressable key={i} style={styles.row} onPress={() => onOpen(i + 1, 0)}>
           <View style={styles.rowMain}>
             <Text style={styles.rowTitle} numberOfLines={1}>{g.timeClass} · {g.opponent}</Text>
           </View>
-          <Text style={[styles.pill, {
-            color: g.result === 'win' ? C.green : g.result === 'loss' ? C.red : C.muted,
-          }]}>{g.result}</Text>
+          <Text style={[styles.pill, { color: rc(g.result) }]}>{g.result}</Text>
         </Pressable>
       ))}
+
+      {payload.findings.length > 0 && (
+        <>
+          <Text style={styles.h2}>Patterns</Text>
+          {payload.findings.map((f, i) => (
+            <View key={i} style={styles.finding}>
+              <Text style={styles.findingH}>{f.headline}</Text>
+            </View>
+          ))}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -303,6 +306,7 @@ const styles = StyleSheet.create({
   rowSub: { color: C.muted, fontSize: 12, marginTop: 1 },
   chev: { color: C.muted, fontSize: 20, marginLeft: 8 },
   pill: { fontWeight: '700', fontSize: 13, marginLeft: 8 },
+  recentMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 4 },
   finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingLeft: 10, paddingVertical: 2, marginTop: 8 },
   findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
 });
