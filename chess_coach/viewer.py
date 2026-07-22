@@ -101,18 +101,26 @@ def _game_data(a: "GameAnalysis", evaluator) -> dict:
     }
 
 
-def render_viewer(report: "CoachReport", evaluator: "StockfishEval | None" = None) -> str:
+def viewer_data(report: "CoachReport", evaluator: "StockfishEval | None" = None) -> dict:
+    """The per-move + coaching payload the review UI renders.
+
+    Single source of truth shared by the HTML viewer and the HTTP API (and the
+    eventual React Native app), so all clients read the same shape.
+    """
     url_to_idx = {a.game.url: i for i, a in enumerate(report.analyses)}
     dl = report.decisive_losses()
     for e in dl:
         e["gameIndex"] = url_to_idx.get(e["url"])
-    data = {
+    return {
         "username": report.username,
         "games": [_game_data(a, evaluator) for a in report.analyses],
         "findings": [f.to_dict() for f in report.findings()],
         "decisiveLosses": dl,
     }
-    return _TEMPLATE.replace("/*__DATA__*/", json.dumps(data))
+
+
+def render_viewer(report: "CoachReport", evaluator: "StockfishEval | None" = None) -> str:
+    return _TEMPLATE.replace("/*__DATA__*/", json.dumps(viewer_data(report, evaluator)))
 
 
 _TEMPLATE = r"""<!doctype html><html><head><meta charset="utf-8">

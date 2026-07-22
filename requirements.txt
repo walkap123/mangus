@@ -1,2 +1,6 @@
 python-chess>=1.11
 requests>=2.31
+
+# beta API server (optional)
+fastapi>=0.110
+uvicorn>=0.29
