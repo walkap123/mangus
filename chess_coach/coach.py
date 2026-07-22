@@ -106,23 +106,34 @@ class CoachReport:
         if n_games == 0:
             return out
 
-        # 1) Hung pieces (across games)
-        hung_games = [a for a in self.analyses
-                      if any(t.name == "hung_piece" for t in a.tags)]
-        if hung_games:
+        # 1) Hung pieces (across games). We separate the *habit* (you left it
+        #    hangable) from what it *cost* (did the opponent actually take it).
+        #    An unpunished hang is still worth fixing but is NOT why you lost.
+        hung = [(a, t) for a in self.analyses for t in a.tags
+                if t.name == "hung_piece"]
+        if hung:
+            hung_games = {id(a) for a, _ in hung}
+            n_punished = sum(1 for _, t in hung if t.punished)
+            n_missed = len(hung) - n_punished
             examples = []
-            for a in hung_games[:6]:
-                t = next(t for t in a.tags if t.name == "hung_piece")
+            for a, t in hung[:6]:
                 examples.append({
-                    "url": a.game.url, "move": f"{t.san}", "detail": t.detail,
+                    "url": a.game.url, "move": t.san, "detail": t.detail,
                     "ply": t.ply_number, "result": a.game.result.value,
+                    "punished": bool(t.punished),
                 })
-            pct = round(100 * len(hung_games) / n_games)
+            bits = []
+            if n_punished:
+                bits.append(f"{n_punished} the opponent took")
+            if n_missed:
+                bits.append(f"{n_missed} they missed")
             out.append(Finding(
                 key="hung_pieces",
-                headline=f"You hung a piece in {len(hung_games)} of {n_games} games ({pct}%).",
-                detail="A move that left material free for the opponent (confirmed "
-                       "by both an eval swing and a static exchange evaluation).",
+                headline=f"You left a piece hanging {len(hung)} times "
+                         f"across {len(hung_games)} of {n_games} games.",
+                detail=f"Punishment: {', '.join(bits)}. An unpunished hang isn't "
+                       f"why you lost — but it's a habit to fix before someone "
+                       f"does take it.",
                 examples=examples,
             ))
 

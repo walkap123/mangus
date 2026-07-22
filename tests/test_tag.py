@@ -91,6 +91,27 @@ def test_no_tag_when_no_free_capture():
     print("  gate: swing without a material-winning capture -> no tag OK")
 
 
+def test_punished_flag():
+    # Ply 5: White hangs the knight on e5. Ply 6: Black actually takes it.
+    hang = Ply(5, 3, Color.WHITE, "Ne5", "c4e5",
+               "4k3/8/3p4/8/2N5/8/8/4K3 w - - 0 1", HUNG_KNIGHT)
+    take = Ply(6, 3, Color.BLACK, "dxe5", "d6e5", HUNG_KNIGHT,
+               "4k3/8/8/4p3/8/8/8/4K3 w - - 0 2")
+    g = Game(
+        game_id="g", url="", played_at=None, time_class="blitz",
+        time_control="300", rated=True, rules="chess", eco=None,
+        white=Player("me", 1500), black=Player("them", 1500),
+        perspective=Color.WHITE, moves=[hang, take],
+    )
+    tag = tag_game(g, [_judgment(5, 0.35)])[0]
+    assert tag.punished is True and "missed" not in tag.detail
+    # same hang but no follow-up capture in the game -> not punished
+    g2 = _game(HUNG_KNIGHT)  # single ply, no reply
+    tag2 = tag_game(g2, [_judgment(5, 0.35)])[0]
+    assert tag2.punished is False and "opponent missed it" in tag2.detail
+    print("  punished flag: taken=True / not-taken=False OK")
+
+
 def test_no_tag_on_even_trade():
     # Regression (found on real games): Qxd7 captures a QUEEN, gets recaptured
     # by a knight. Big eval swing (bad trade), but net material is 0 -> it is a
@@ -118,5 +139,6 @@ if __name__ == "__main__":
     test_hung_piece_detected()
     test_no_tag_when_swing_too_small()
     test_no_tag_when_no_free_capture()
+    test_punished_flag()
     test_no_tag_on_even_trade()
     print("ALL PASSED")

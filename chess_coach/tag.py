@@ -42,7 +42,13 @@ PIECE_VALUE = {
 
 @dataclass
 class Tag:
-    """A semantic label attached to one ply."""
+    """A semantic label attached to one ply.
+
+    `punished` separates what you *did* from what it *cost*: the tag fires on the
+    mistake (the piece was hangable), but `punished` records whether the opponent
+    actually took it on their real next move. An unpunished hang is still a habit
+    worth fixing — it is NOT why you lost the game.
+    """
     name: str                 # e.g. "hung_piece"
     ply_number: int
     color: Color              # whose move earned the tag
@@ -52,6 +58,7 @@ class Tag:
     material_cp: Optional[int] = None    # material the opponent wins (SEE)
     victim_square: Optional[str] = None  # e.g. "e5"
     victim_piece: Optional[str] = None   # e.g. "knight"
+    punished: Optional[bool] = None      # did the opponent actually take it?
 
 
 # ---------------- static exchange evaluation ----------------
@@ -152,6 +159,7 @@ class HungPieceDetector:
 
     def detect(self, game: Game, judgments: list[MoveJudgment]) -> list[Tag]:
         jmap = {j.ply_number: j for j in judgments}
+        by_num = {p.ply_number: p for p in game.moves}
         tags: list[Tag] = []
         for ply in game.moves:
             j = jmap.get(ply.ply_number)
@@ -170,12 +178,16 @@ class HungPieceDetector:
                 continue
             piece = chess.piece_name(victim_type)        # "knight"
             square = chess.square_name(to_sq)            # "e5"
+            # Did the opponent actually take it on their real next move?
+            nxt = by_num.get(ply.ply_number + 1)
+            punished = bool(nxt and nxt.uci[2:4] == square)
+            note = "" if punished else " — opponent missed it"
             tags.append(Tag(
                 name=self.name, ply_number=ply.ply_number, color=ply.color,
                 san=ply.san,
-                detail=f"hung a {piece} on {square} (-{net_cp // 100})",
+                detail=f"hung a {piece} on {square} (-{net_cp // 100}){note}",
                 win_prob_lost=j.win_prob_lost, material_cp=net_cp,
-                victim_square=square, victim_piece=piece,
+                victim_square=square, victim_piece=piece, punished=punished,
             ))
         return tags
 
