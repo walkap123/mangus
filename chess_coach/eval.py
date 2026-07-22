@@ -35,6 +35,7 @@ from .store import Store
 _MATE_SCORE = 100_000
 
 _COMMON_PATHS = (
+    "~/.local/bin/stockfish",        # our no-sudo install location
     "/opt/homebrew/bin/stockfish",   # Apple-silicon Homebrew
     "/usr/local/bin/stockfish",      # Intel Homebrew
     "/usr/bin/stockfish",
@@ -57,6 +58,7 @@ def find_stockfish(explicit: Optional[str] = None) -> str:
     if found:
         return found
     for path in _COMMON_PATHS:
+        path = os.path.expanduser(path)
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
     raise EngineNotFound(
