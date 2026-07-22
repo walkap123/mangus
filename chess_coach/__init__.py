@@ -14,6 +14,10 @@ from .eval import StockfishEval, EngineNotFound, find_stockfish
 from .classify import (
     MoveClass, MoveJudgment, MoveClassifier, Thresholds, win_prob, summarize,
 )
+from .tag import (
+    Tag, Detector, HungPieceDetector, tag_game,
+    static_exchange_eval, best_free_capture,
+)
 
 __all__ = [
     "ChessComClient", "ChessComError", "PlayerNotFound",
@@ -21,6 +25,8 @@ __all__ = [
     "Store", "StockfishEval", "EngineNotFound", "find_stockfish",
     "MoveClass", "MoveJudgment", "MoveClassifier", "Thresholds",
     "win_prob", "summarize",
+    "Tag", "Detector", "HungPieceDetector", "tag_game",
+    "static_exchange_eval", "best_free_capture",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

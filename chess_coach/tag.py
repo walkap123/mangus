@@ -1,0 +1,180 @@
+"""Semantic tag layer — the differentiator.
+
+Where the classifier says *how bad* a move was (win% lost), the tag layer says
+*what kind* of mistake it was — the human-meaningful label a coach reasons over
+and rolls up across games ("you hang pieces in time trouble").
+
+First detector: **hung piece**. It fires only when two independent signals
+agree:
+
+  1. the classifier flagged a real eval swing against the mover (so we never
+     tag a sound sacrifice or a position that was already lost), AND
+  2. a **static exchange evaluation (SEE)** on the resulting position shows the
+     opponent can win material outright with a capture.
+
+SEE is our own implementation of the standard swap-off algorithm (an algorithm,
+not borrowed code): on the target square, both sides recapture with their
+least-valuable attacker in turn, and either side may stop when continuing would
+lose material. Because we make each capture on a board copy, x-ray attackers
+revealed behind a mover are handled for free.
+
+Detectors read only `Game` + the classifier's `MoveJudgment`s, so they stay
+engine-agnostic (the eval swing is already baked into the judgments).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional, Protocol
+
+import chess
+
+from .classify import MoveJudgment
+from .models import Color, Game
+
+# Rough material values in centipawns. King is nominal (it's never actually
+# captured; the value just keeps it last in the swap order).
+PIECE_VALUE = {
+    chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP: 300,
+    chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000,
+}
+
+
+@dataclass
+class Tag:
+    """A semantic label attached to one ply."""
+    name: str                 # e.g. "hung_piece"
+    ply_number: int
+    color: Color              # whose move earned the tag
+    san: str
+    detail: str               # human phrase, e.g. "hung a knight on e5 (-3)"
+    win_prob_lost: Optional[float] = None
+    material_cp: Optional[int] = None    # material the opponent wins (SEE)
+    victim_square: Optional[str] = None  # e.g. "e5"
+    victim_piece: Optional[str] = None   # e.g. "knight"
+
+
+# ---------------- static exchange evaluation ----------------
+def _least_valuable_attacker(board: chess.Board, sq: int, side: bool) -> Optional[int]:
+    attackers = board.attackers(side, sq)
+    if not attackers:
+        return None
+    return min(attackers, key=lambda s: PIECE_VALUE[board.piece_at(s).piece_type])
+
+
+def _see_recapture(board: chess.Board, sq: int, side: bool) -> int:
+    """Best material `side` can gain by (optionally) recapturing on `sq`."""
+    lva = _least_valuable_attacker(board, sq, side)
+    if lva is None:
+        return 0
+    piece = board.piece_at(lva)
+    # A king can't capture into a square the opponent still defends.
+    if piece.piece_type == chess.KING and board.attackers(not side, sq):
+        return 0
+    captured_value = PIECE_VALUE[board.piece_at(sq).piece_type]
+    promo = (chess.QUEEN if piece.piece_type == chess.PAWN
+             and chess.square_rank(sq) in (0, 7) else None)
+    board.push(chess.Move(lva, sq, promotion=promo))
+    gain = captured_value - _see_recapture(board, sq, not side)
+    board.pop()
+    return max(0, gain)  # standing pat: don't recapture if it loses material
+
+
+def static_exchange_eval(board: chess.Board, move: chess.Move) -> int:
+    """Net material (centipawns) for the side making capturing `move`.
+
+    Positive means the capture wins material even after every recapture.
+    """
+    to_sq = move.to_square
+    if board.is_en_passant(move):
+        captured_value = PIECE_VALUE[chess.PAWN]
+    else:
+        target = board.piece_at(to_sq)
+        if target is None:
+            return 0
+        captured_value = PIECE_VALUE[target.piece_type]
+    board = board.copy(stack=False)
+    board.push(move)
+    return captured_value - _see_recapture(board, to_sq, board.turn)
+
+
+def best_free_capture(board: chess.Board) -> Optional[tuple[int, int, int]]:
+    """Best material-winning capture for the side to move.
+
+    Returns (see_cp, to_square, victim_piece_type) for the capture with the
+    highest positive SEE, or None if no capture wins material.
+    """
+    best: Optional[tuple[int, int, int]] = None
+    for move in board.legal_moves:
+        if not board.is_capture(move):
+            continue
+        see = static_exchange_eval(board, move)
+        if see <= 0:
+            continue
+        victim = (chess.PAWN if board.is_en_passant(move)
+                  else board.piece_at(move.to_square).piece_type)
+        if best is None or see > best[0]:
+            best = (see, move.to_square, victim)
+    return best
+
+
+# ---------------- detectors ----------------
+class Detector(Protocol):
+    def detect(self, game: Game, judgments: list[MoveJudgment]) -> list[Tag]: ...
+
+
+class HungPieceDetector:
+    """Flags a move that left a piece hanging for a material-losing swing.
+
+    min_swing:   minimum win% lost (classifier) to consider the move a real
+                 mistake — the guard against tagging sound sacrifices.
+    min_material: minimum SEE (centipawns) the opponent wins — default a minor
+                 piece, so "hung a pawn" doesn't count as hanging a *piece*.
+    """
+
+    name = "hung_piece"
+
+    def __init__(self, *, min_swing: float = 0.15, min_material: int = 300):
+        self.min_swing = min_swing
+        self.min_material = min_material
+
+    def detect(self, game: Game, judgments: list[MoveJudgment]) -> list[Tag]:
+        jmap = {j.ply_number: j for j in judgments}
+        tags: list[Tag] = []
+        for ply in game.moves:
+            j = jmap.get(ply.ply_number)
+            if j is None or j.win_prob_lost < self.min_swing:
+                continue
+            # In the position after the move, can the opponent grab material?
+            board = chess.Board(ply.fen_after)
+            cap = best_free_capture(board)
+            if cap is None:
+                continue
+            see_cp, to_sq, victim_type = cap
+            if see_cp < self.min_material:
+                continue
+            piece = chess.piece_name(victim_type)        # "knight"
+            square = chess.square_name(to_sq)            # "e5"
+            tags.append(Tag(
+                name=self.name, ply_number=ply.ply_number, color=ply.color,
+                san=ply.san,
+                detail=f"hung a {piece} on {square} (-{see_cp // 100})",
+                win_prob_lost=j.win_prob_lost, material_cp=see_cp,
+                victim_square=square, victim_piece=piece,
+            ))
+        return tags
+
+
+def tag_game(
+    game: Game,
+    judgments: list[MoveJudgment],
+    detectors: Optional[list[Detector]] = None,
+) -> list[Tag]:
+    """Run detectors over a classified game; tags sorted by ply."""
+    if detectors is None:
+        detectors = [HungPieceDetector()]
+    tags: list[Tag] = []
+    for d in detectors:
+        tags.extend(d.detect(game, judgments))
+    tags.sort(key=lambda t: t.ply_number)
+    return tags

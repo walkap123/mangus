@@ -19,7 +19,11 @@ cross-game, holistic feedback is what makes it a coach rather than an analyzer.
 
 ```
 ingest  ->  eval (Stockfish)  ->  classify moves  ->  tag  ->  coach
- [DONE]        [DONE]              [DONE]            [the moat]   [later]
+ [DONE]        [DONE]              [DONE]           [WIP: moat]  [later]
+
+tag layer started: `tag.py` has a hung-piece detector (SEE + eval-swing gate).
+More detectors (missed tactic, endgame type, time trouble) + cross-game
+aggregation are next.
 ```
 
 Under all of it: **`store.py`** (SQLite) persists ingested games and caches
