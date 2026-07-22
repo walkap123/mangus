@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analyze, defaultApiBase } from './src/api';
+import { EngineTest } from './src/EngineTest';
 import { Board, Slide } from './src/Board';
 import { C, CLS, accColor, resultColor } from './src/theme';
 import type { Payload, Game, Finding } from './src/types';
@@ -32,7 +33,7 @@ function GameStats({ g, size = 'md' }: { g: Game; size?: 'sm' | 'md' }) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<'home' | 'loading' | 'main' | 'review'>('home');
+  const [screen, setScreen] = useState<'home' | 'loading' | 'main' | 'review' | 'enginetest'>('home');
   const [tab, setTab] = useState<'games' | 'patterns'>('games');
   const [hydrated, setHydrated] = useState(false);
   const [username, setUsername] = useState('');
@@ -94,8 +95,10 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       {screen === 'home' && (
         <Home username={username} setUsername={setUsername} apiBase={apiBase}
-          setApiBase={setApiBase} error={error} onRun={run} />
+          setApiBase={setApiBase} error={error} onRun={run}
+          onEngineTest={() => setScreen('enginetest')} />
       )}
+      {screen === 'enginetest' && <EngineTest onBack={() => setScreen('home')} />}
       {screen === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator color={C.accent} size="large" />
@@ -154,7 +157,7 @@ function TabBar({ tab, setTab }: { tab: 'games' | 'patterns'; setTab: (t: 'games
   );
 }
 
-function Home({ username, setUsername, apiBase, setApiBase, error, onRun }: any) {
+function Home({ username, setUsername, apiBase, setApiBase, error, onRun, onEngineTest }: any) {
   return (
     <ScrollView contentContainerStyle={styles.homeWrap}>
       <Text style={styles.brand}>♞ mangus</Text>
@@ -172,6 +175,10 @@ function Home({ username, setUsername, apiBase, setApiBase, error, onRun }: any)
           <Text style={styles.primaryText}>Analyze my games</Text>
         </Pressable>
       </View>
+
+      <Pressable onPress={onEngineTest} style={{ marginTop: 20, alignItems: 'center' }}>
+        <Text style={{ color: C.muted, fontSize: 13 }}>🔧 Test on-device engine</Text>
+      </Pressable>
     </ScrollView>
   );
 }
