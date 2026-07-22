@@ -5,10 +5,30 @@ import {
 } from 'react-native';
 import { analyze, defaultApiBase } from './src/api';
 import { Board, Slide } from './src/Board';
-import { C, CLS } from './src/theme';
+import { C, CLS, accColor, resultColor } from './src/theme';
 import type { Payload, Game } from './src/types';
 
 const sqOf = (uci: string) => [uci.slice(0, 2), uci.slice(2, 4)];
+
+// ---- small shared UI ----
+function Bubble({ value, label, color = C.accent }: { value: string; label?: string; color?: string }) {
+  return (
+    <View style={[styles.bubble, { backgroundColor: color + '22', borderColor: color + '55' }]}>
+      <Text style={[styles.bubbleVal, { color }]}>{value}</Text>
+      {label ? <Text style={styles.bubbleLabel}>{label}</Text> : null}
+    </View>
+  );
+}
+
+function GameStats({ g, size = 'md' }: { g: Game; size?: 'sm' | 'md' }) {
+  if (g.accuracy == null) return null;
+  return (
+    <View style={styles.bubbleRow}>
+      <Bubble value={`${g.accuracy}%`} label={size === 'md' ? 'accuracy' : undefined} color={accColor(g.accuracy)} />
+      {g.elo != null && <Bubble value={`~${g.elo}`} label={size === 'md' ? 'played like' : undefined} color={C.accent} />}
+    </View>
+  );
+}
 
 export default function App() {
   const [screen, setScreen] = useState<'home' | 'loading' | 'games' | 'review'>('home');
@@ -42,17 +62,14 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" />
       {screen === 'home' && (
-        <Home
-          username={username} setUsername={setUsername}
-          apiBase={apiBase} setApiBase={setApiBase}
-          error={error} onRun={run}
-        />
+        <Home username={username} setUsername={setUsername} apiBase={apiBase}
+          setApiBase={setApiBase} error={error} onRun={run} />
       )}
       {screen === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator color={C.accent} size="large" />
-          <Text style={styles.muted}>Analyzing {username}'s games…</Text>
-          <Text style={[styles.muted, { fontSize: 12 }]}>(first run is slower — Stockfish is thinking)</Text>
+          <Text style={[styles.muted, { marginTop: 14 }]}>Analyzing {username}'s games…</Text>
+          <Text style={[styles.muted, { fontSize: 12 }]}>first run is slower — Stockfish is thinking</Text>
         </View>
       )}
       {screen === 'games' && payload && (
@@ -68,26 +85,21 @@ export default function App() {
 function Home({ username, setUsername, apiBase, setApiBase, error, onRun }: any) {
   return (
     <ScrollView contentContainerStyle={styles.homeWrap}>
-      <Text style={styles.h1}>
-        mangus <Text style={{ color: C.accent }}>review</Text>
-      </Text>
-      <Text style={styles.muted}>Your chess.com games, analyzed.</Text>
+      <Text style={styles.brand}>♞ mangus</Text>
+      <Text style={[styles.muted, { marginBottom: 28 }]}>Your chess.com games, coached.</Text>
 
-      <Text style={styles.label}>chess.com username</Text>
-      <TextInput
-        style={styles.input} value={username} onChangeText={setUsername}
-        autoCapitalize="none" autoCorrect={false} placeholder="username"
-        placeholderTextColor={C.muted}
-      />
-      <Text style={styles.label}>server</Text>
-      <TextInput
-        style={styles.input} value={apiBase} onChangeText={setApiBase}
-        autoCapitalize="none" autoCorrect={false}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={styles.primary} onPress={onRun}>
-        <Text style={styles.primaryText}>Analyze my games</Text>
-      </Pressable>
+      <View style={styles.card}>
+        <Text style={styles.label}>chess.com username</Text>
+        <TextInput style={styles.input} value={username} onChangeText={setUsername}
+          autoCapitalize="none" autoCorrect={false} placeholder="username" placeholderTextColor={C.muted} />
+        <Text style={[styles.label, { marginTop: 14 }]}>server</Text>
+        <TextInput style={styles.input} value={apiBase} onChangeText={setApiBase}
+          autoCapitalize="none" autoCorrect={false} />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Pressable style={styles.primary} onPress={onRun}>
+          <Text style={styles.primaryText}>Analyze my games</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -98,9 +110,8 @@ function Games({ payload, onOpen, onBack }: {
   const wins = payload.games.filter((g) => g.result === 'win').length;
   const losses = payload.games.filter((g) => g.result === 'loss').length;
   const draws = payload.games.length - wins - losses;
-  const rc = (r: string) => (r === 'win' ? C.green : r === 'loss' ? C.red : C.muted);
   const recent = payload.games[0];
-  const boardSize = Math.min(Dimensions.get('window').width - 36, 380);
+  const boardSize = Math.min(Dimensions.get('window').width - 32, 400);
   const lastPly = recent && recent.plies.length ? recent.plies[recent.plies.length - 1] : null;
   const recentFen = lastPly ? lastPly.fen : recent?.startFen;
   const recentHl: Record<string, string> = {};
@@ -111,36 +122,39 @@ function Games({ payload, onOpen, onBack }: {
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <Pressable onPress={onBack} hitSlop={10}><Text style={styles.back}>‹ back</Text></Pressable>
+      <Pressable onPress={onBack} hitSlop={12}><Text style={styles.back}>‹ back</Text></Pressable>
       <Text style={styles.h1}>{payload.username}</Text>
-      <Text style={styles.muted}>{payload.games.length} games · {wins}W {losses}L {draws}D</Text>
+      <View style={styles.recordRow}>
+        <Text style={[styles.record, { color: C.green }]}>{wins}W</Text>
+        <Text style={[styles.record, { color: C.red }]}>{losses}L</Text>
+        <Text style={[styles.record, { color: C.muted }]}>{draws}D</Text>
+        <Text style={[styles.muted, { marginLeft: 4 }]}>· {payload.games.length} games</Text>
+      </View>
 
       {recent && recentFen && (
         <>
           <Text style={styles.h2}>Most recent</Text>
-          <Pressable onPress={() => onOpen(0, 0)}>
+          <Pressable onPress={() => onOpen(0, 0)} style={styles.recentCard}>
             <Board fen={recentFen} flip={recent.perspective === 'black'} size={boardSize} highlights={recentHl} />
-            <View style={styles.recentMeta}>
-              <Text style={styles.rowTitle}>{recent.timeClass} · {recent.opponent}</Text>
-              <Text style={[styles.pill, { color: rc(recent.result) }]}>{recent.result} · review ›</Text>
+            <View style={styles.recentFooter}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{recent.timeClass} · {recent.opponent}</Text>
+                <Text style={[styles.resultText, { color: resultColor(recent.result) }]}>{recent.result.toUpperCase()}</Text>
+              </View>
+              <GameStats g={recent} />
             </View>
-            {recent.accuracy != null && (
-              <Text style={styles.muted}>Accuracy {recent.accuracy}% · played like ~{recent.elo}</Text>
-            )}
           </Pressable>
         </>
       )}
 
       <Text style={styles.h2}>Past games</Text>
       {payload.games.slice(1).map((g, i) => (
-        <Pressable key={i} style={styles.row} onPress={() => onOpen(i + 1, 0)}>
-          <View style={styles.rowMain}>
+        <Pressable key={i} style={styles.gameRow} onPress={() => onOpen(i + 1, 0)}>
+          <View style={{ flex: 1 }}>
             <Text style={styles.rowTitle} numberOfLines={1}>{g.timeClass} · {g.opponent}</Text>
-            {g.accuracy != null && (
-              <Text style={styles.rowSub}>{g.accuracy}% accuracy · played like ~{g.elo}</Text>
-            )}
+            <GameStats g={g} size="sm" />
           </View>
-          <Text style={[styles.pill, { color: rc(g.result) }]}>{g.result}</Text>
+          <View style={[styles.dot, { backgroundColor: resultColor(g.result) }]} />
         </Pressable>
       ))}
 
@@ -164,9 +178,7 @@ function Review({ game, initialPly, onBack }: {
   const [ply, setPly] = useState(initialPly);
   const [showBest, setShowBest] = useState(false);
   const [slide, setSlide] = useState<Slide>(null);
-  const positions = useMemo(
-    () => [game.startFen, ...game.plies.map((p) => p.fen)], [game]
-  );
+  const positions = useMemo(() => [game.startFen, ...game.plies.map((p) => p.fen)], [game]);
   const flip = game.perspective === 'black';
   const mv = ply > 0 ? game.plies[ply - 1] : null;
   const boardSize = Math.min(Dimensions.get('window').width - 56, 420);
@@ -196,11 +208,14 @@ function Review({ game, initialPly, onBack }: {
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <Pressable onPress={onBack}><Text style={styles.back}>‹ games</Text></Pressable>
-      <Text style={styles.muted}>
-        vs {game.opponent} · {game.timeClass} · {game.result}
-        {game.accuracy != null ? ` · ${game.accuracy}% · ~${game.elo}` : ''}
-      </Text>
+      <Pressable onPress={onBack} hitSlop={12}><Text style={styles.back}>‹ games</Text></Pressable>
+      <View style={styles.reviewHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>vs {game.opponent}</Text>
+          <Text style={styles.muted}>{game.timeClass} · <Text style={{ color: resultColor(game.result) }}>{game.result}</Text></Text>
+        </View>
+        <GameStats g={game} size="sm" />
+      </View>
 
       <View style={styles.boardRow}>
         {ev != null && (
@@ -209,18 +224,16 @@ function Review({ game, initialPly, onBack }: {
             <Text style={styles.evalNum}>{ev}%</Text>
           </View>
         )}
-        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights}
-          slide={showBest ? null : slide} />
+        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights} slide={showBest ? null : slide} />
       </View>
 
       <View style={styles.controls}>
-        {[['⏮', () => go(0, null)], ['◀', () => step(-1)],
-          ['▶', () => step(1)], ['⏭', () => go(len, null)],
-        ].map(([label, fn]: any, i) => (
-          <Pressable key={i} style={styles.ctrl} onPress={fn}>
-            <Text style={styles.ctrlText}>{label}</Text>
-          </Pressable>
-        ))}
+        {[['⏮', () => go(0, null)], ['◀', () => step(-1)], ['▶', () => step(1)], ['⏭', () => go(len, null)]]
+          .map(([label, fn]: any, i) => (
+            <Pressable key={i} style={styles.ctrl} onPress={fn}>
+              <Text style={styles.ctrlText}>{label}</Text>
+            </Pressable>
+          ))}
       </View>
 
       <View style={styles.anno}>
@@ -248,9 +261,7 @@ function Review({ game, initialPly, onBack }: {
             ) : null}
             {mv.mine && mv.bestUci && mv.cls !== 'best' && mv.cls !== 'good' ? (
               <Pressable style={styles.bestBtn} onPress={() => { setSlide(null); setShowBest((s) => !s); }}>
-                <Text style={styles.bestBtnText}>
-                  {showBest ? '↩ back to the game' : 'What should I have played?'}
-                </Text>
+                <Text style={styles.bestBtnText}>{showBest ? '↩ back to the game' : 'What should I have played?'}</Text>
               </Pressable>
             ) : null}
           </>
@@ -274,48 +285,59 @@ function Review({ game, initialPly, onBack }: {
 
 const styles = StyleSheet.create({
   app: { flex: 1, backgroundColor: C.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  wrap: { padding: 18, paddingBottom: 60 },
-  homeWrap: { padding: 24, paddingTop: 80, gap: 8 },
-  h1: { color: C.fg, fontSize: 26, fontWeight: '800' },
-  h2: { color: C.fg, fontSize: 15, fontWeight: '700', marginTop: 18, marginBottom: 4 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  wrap: { padding: 16, paddingBottom: 60 },
+  homeWrap: { padding: 24, paddingTop: 90, flexGrow: 1 },
+  brand: { color: C.fg, fontSize: 34, fontWeight: '900', letterSpacing: -0.5 },
+  h1: { color: C.fg, fontSize: 26, fontWeight: '800', marginTop: 4 },
+  h2: { color: C.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 22, marginBottom: 8 },
   muted: { color: C.muted, fontSize: 13 },
-  label: { color: C.muted, fontSize: 12, marginTop: 16, marginBottom: 4 },
-  input: {
-    backgroundColor: C.card, color: C.fg, borderWidth: 1, borderColor: C.line,
-    borderRadius: 10, padding: 12, fontSize: 16,
-  },
+  label: { color: C.muted, fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
+  record: { fontSize: 15, fontWeight: '800' },
+
+  card: { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 18 },
+  input: { backgroundColor: C.bg, color: C.fg, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 13, fontSize: 16 },
   error: { color: C.red, marginTop: 12 },
-  primary: { backgroundColor: C.accent, borderRadius: 12, padding: 15, marginTop: 24, alignItems: 'center' },
+  primary: { backgroundColor: C.accent, borderRadius: 14, padding: 15, marginTop: 22, alignItems: 'center' },
   primaryText: { color: '#111', fontWeight: '800', fontSize: 16 },
-  back: { color: C.accent, fontSize: 15, marginBottom: 8 },
-  boardRow: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'flex-start' },
+  back: { color: C.accent, fontSize: 15, marginBottom: 6 },
+
+  bubble: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 5 },
+  bubbleVal: { fontWeight: '800', fontSize: 14 },
+  bubbleLabel: { color: C.muted, fontSize: 11, fontWeight: '600' },
+  bubbleRow: { flexDirection: 'row', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' },
+
+  recentCard: {},
+  recentFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 8 },
+  cardTitle: { color: C.fg, fontSize: 16, fontWeight: '700' },
+  resultText: { fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 2 },
+
+  gameRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 12, padding: 12, marginTop: 8, gap: 10 },
+  rowTitle: { color: C.fg, fontSize: 15, fontWeight: '600', marginBottom: 6 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+
+  finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingLeft: 12, paddingVertical: 3, marginTop: 8 },
+  findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
+
+  reviewHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  boardRow: { flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'flex-start' },
   evalBar: { width: 18, backgroundColor: '#111', borderRadius: 5, overflow: 'hidden', justifyContent: 'flex-end' },
   evalFill: { backgroundColor: '#e8e8ea', width: '100%' },
   evalNum: { position: 'absolute', bottom: 2, left: 0, right: 0, textAlign: 'center', fontSize: 8, color: '#111', fontWeight: '700' },
   controls: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  ctrl: { flex: 1, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  ctrl: { flex: 1, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 13, alignItems: 'center' },
   ctrlText: { color: C.fg, fontSize: 18 },
-  anno: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 14, marginTop: 14, minHeight: 96 },
+  anno: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 15, marginTop: 14, minHeight: 96 },
   annoTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   annoMove: { color: C.fg, fontSize: 18, fontWeight: '700' },
-  badge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 },
+  badge: { borderRadius: 7, paddingHorizontal: 9, paddingVertical: 3 },
   badgeText: { color: '#111', fontWeight: '800', fontSize: 12 },
   tag: { color: C.red, fontWeight: '700', marginTop: 6 },
   bestInfo: { color: C.fg, marginTop: 8 },
-  bestBtn: { backgroundColor: C.green, borderRadius: 8, paddingVertical: 10, alignItems: 'center', marginTop: 12 },
+  bestBtn: { backgroundColor: C.green, borderRadius: 10, paddingVertical: 11, alignItems: 'center', marginTop: 12 },
   bestBtnText: { color: '#062', fontWeight: '800' },
   moveList: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 16, gap: 2 },
   moveItem: { color: C.fg, fontSize: 14, paddingHorizontal: 4, paddingVertical: 2 },
   moveCur: { backgroundColor: C.accent, color: '#111', borderRadius: 4, fontWeight: '700', overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
-         borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginTop: 6 },
-  rowMain: { flex: 1 },
-  rowTitle: { color: C.fg, fontSize: 14, fontWeight: '600' },
-  rowSub: { color: C.muted, fontSize: 12, marginTop: 1 },
-  chev: { color: C.muted, fontSize: 20, marginLeft: 8 },
-  pill: { fontWeight: '700', fontSize: 13, marginLeft: 8 },
-  recentMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 4 },
-  finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingLeft: 10, paddingVertical: 2, marginTop: 8 },
-  findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
 });

@@ -20,3 +20,16 @@ export const CLS: Record<string, { l: string; c: string }> = {
   mistake: { l: 'Mistake', c: '#fb923c' },
   blunder: { l: 'Blunder', c: '#ef4444' },
 };
+
+// accuracy -> color grade (green good ... red bad)
+export function accColor(acc: number | null | undefined): string {
+  if (acc == null) return C.muted;
+  if (acc >= 70) return '#4ade80';
+  if (acc >= 55) return '#a3e635';
+  if (acc >= 40) return '#fbbf24';
+  if (acc >= 25) return '#fb923c';
+  return '#ef4444';
+}
+
+export const resultColor = (r: string) =>
+  r === 'win' ? C.green : r === 'loss' ? C.red : C.muted;
