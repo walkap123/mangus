@@ -5,7 +5,7 @@ import chess
 from chess_coach.models import Color, Game, Player, Ply
 from chess_coach.classify import MoveClass, MoveJudgment
 from chess_coach.tag import (
-    HungPieceDetector, AllowedTacticDetector, tag_game,
+    HungPieceDetector, AllowedTacticDetector, AllowedAttackDetector, tag_game,
     static_exchange_eval, best_free_capture,
 )
 
@@ -176,6 +176,63 @@ def test_allowed_tactic():
     print("  allowed_tactic: fork detected; not-punished & hung-piece both skip OK")
 
 
+def test_allowed_attack_mate():
+    # White (me) plays an idle knight move, allowing a back-rank mate: ...Re1#.
+    # No material changes hands.
+    p5 = Ply(5, 20, Color.WHITE, "Nc3", "b1c3",
+             "4r1k1/8/8/8/8/8/5PPP/1N4K1 w - - 0 1",
+             "4r1k1/8/8/8/8/2N5/5PPP/6K1 b - - 1 1")
+    p6 = Ply(6, 20, Color.BLACK, "Re1#", "e8e1",
+             p5.fen_after, "6k1/8/8/8/8/2N5/5PPP/4r1K1 w - - 2 2")
+    game = Game(
+        game_id="g", url="", played_at=None, time_class="blitz",
+        time_control="300", rated=True, rules="chess", eco=None,
+        white=Player("me", 1500), black=Player("them", 1500),
+        perspective=Color.WHITE, moves=[p5, p6])
+    j = MoveJudgment(5, Color.WHITE, "Nc3", "b1c3", MoveClass.BLUNDER,
+                     0.70, 0.0, 0.70, "g1f1", False,
+                     win_prob_after_reply=0.0, retained_loss=0.70, punished=True)
+    tags = AllowedAttackDetector().detect(game, [j])
+    assert len(tags) == 1 and tags[0].name == "allowed_attack", tags
+    assert tags[0].detail == "allowed a mating attack", tags[0].detail
+
+    # a MATERIAL loss (fork) must NOT be labeled an attack — tactic owns it
+    p5b = Ply(5, 3, Color.WHITE, "Re1", "a1e1",
+              "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1", "6k1/8/8/6n1/8/8/8/4R1K1 b - - 1 1")
+    p6b = Ply(6, 3, Color.BLACK, "Nf3+", "g5f3", p5b.fen_after,
+              "6k1/8/8/8/8/5n2/8/4R1K1 w - - 2 2")
+    p7b = Ply(7, 4, Color.WHITE, "Kf1", "g1f1", p6b.fen_after,
+              "6k1/8/8/8/8/5n2/8/4RK2 b - - 3 2")
+    p8b = Ply(8, 4, Color.BLACK, "Nxe1", "f3e1", p7b.fen_after,
+              "6k1/8/8/8/8/8/8/4nK2 w - - 0 3")
+    gb = Game(game_id="g2", url="", played_at=None, time_class="rapid",
+              time_control="600", rated=True, rules="chess", eco=None,
+              white=Player("me", 1500), black=Player("them", 1500),
+              perspective=Color.WHITE, moves=[p5b, p6b, p7b, p8b])
+    jb = MoveJudgment(5, Color.WHITE, "Re1", "a1e1", MoveClass.BLUNDER,
+                      0.60, 0.20, 0.40, "a1a2", False,
+                      win_prob_after_reply=0.20, retained_loss=0.40, punished=True)
+    assert AllowedAttackDetector().detect(gb, [jb]) == []
+
+    # non-material collapse but NO checks against me (squandered compensation /
+    # positional drift) -> must NOT be called an attack
+    q5 = Ply(5, 20, Color.WHITE, "Kf1", "g1f1",
+             "6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1", "6k1/5ppp/8/8/8/8/5PPP/5K2 b - - 1 1")
+    q6 = Ply(6, 20, Color.BLACK, "Kf8", "g8f8", q5.fen_after,
+             "5k2/5ppp/8/8/8/8/5PPP/5K2 w - - 2 2")
+    q7 = Ply(7, 21, Color.WHITE, "Ke1", "f1e1", q6.fen_after,
+             "5k2/5ppp/8/8/8/8/5PPP/4K3 b - - 3 2")
+    gq = Game(game_id="g3", url="", played_at=None, time_class="rapid",
+              time_control="600", rated=True, rules="chess", eco=None,
+              white=Player("me", 1500), black=Player("them", 1500),
+              perspective=Color.WHITE, moves=[q5, q6, q7])
+    jq = MoveJudgment(5, Color.WHITE, "Kf1", "g1f1", MoveClass.BLUNDER,
+                      0.65, 0.20, 0.45, "g1h1", False,
+                      win_prob_after_reply=0.20, retained_loss=0.45, punished=True)
+    assert AllowedAttackDetector().detect(gq, [jq]) == []
+    print("  allowed_attack: mate flagged; material tactic & no-king-pressure excluded OK")
+
+
 if __name__ == "__main__":
     print("Running tag tests...")
     test_see_free_piece()
@@ -187,4 +244,5 @@ if __name__ == "__main__":
     test_punished_flag()
     test_no_tag_on_even_trade()
     test_allowed_tactic()
+    test_allowed_attack_mate()
     print("ALL PASSED")

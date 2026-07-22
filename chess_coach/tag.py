@@ -30,7 +30,7 @@ from typing import Optional, Protocol
 import chess
 
 from .classify import MoveJudgment
-from .models import Color, Game
+from .models import Color, Game, Ply
 
 # Rough material values in centipawns. King is nominal (it's never actually
 # captured; the value just keeps it last in the swap order).
@@ -258,6 +258,84 @@ class AllowedTacticDetector:
         return tags
 
 
+class AllowedAttackDetector:
+    """Flags a move that let the opponent's ATTACK decide the game with (almost)
+    no material change — you walked into a mating attack, or got positionally
+    crushed. The material detectors (hung-piece, allowed-tactic) structurally
+    can't see these, so this covers the gap.
+
+    Gated on: real error + punished + win% actually *collapsed* to losing +
+    (almost) no material swing + **evidence of an actual attack** on your king
+    (the opponent delivers checks, or mate). Without that king-pressure evidence
+    a non-material collapse is left as a generic blunder — it might be squandered
+    compensation or positional drift, and we won't call that an "attack".
+    """
+
+    name = "allowed_attack"
+
+    def __init__(self, *, min_swing: float = 0.20, collapse_to: float = 0.30,
+                 material_ceiling: int = 100, lookahead: int = 6):
+        self.min_swing = min_swing
+        self.collapse_to = collapse_to        # win% must fall to at most this
+        self.material_ceiling = material_ceiling  # opponent gains less than this
+        self.lookahead = lookahead
+
+    def detect(self, game: Game, judgments: list[MoveJudgment]) -> list[Tag]:
+        jmap = {j.ply_number: j for j in judgments}
+        by_num = {p.ply_number: p for p in game.moves}
+        if not by_num:
+            return []
+        max_ply = max(by_num)
+        me_white = game.perspective is Color.WHITE
+        tags: list[Tag] = []
+        for ply in game.moves:
+            j = jmap.get(ply.ply_number)
+            if j is None or not j.punished or j.win_prob_lost < self.min_swing:
+                continue
+            if j.win_prob_after_reply is None or j.win_prob_after_reply > self.collapse_to:
+                continue
+            # Must be (almost) non-material, else a tactic/hang already owns it.
+            end_ply = by_num.get(min(ply.ply_number + self.lookahead, max_ply))
+            if end_ply is not None and end_ply.ply_number > ply.ply_number:
+                lost = (_my_material(chess.Board(ply.fen_after), me_white)
+                        - _my_material(chess.Board(end_ply.fen_after), me_white))
+            else:
+                lost = 0
+            if lost >= self.material_ceiling:
+                continue
+            # Only call it an attack if the opponent actually pressured my king.
+            checks, mate = self._king_pressure(
+                by_num, ply.ply_number, max_ply, game.perspective)
+            if not mate and checks == 0:
+                continue
+            tags.append(Tag(
+                name=self.name, ply_number=ply.ply_number, color=ply.color,
+                san=ply.san,
+                detail="allowed a mating attack" if mate else "allowed an attack on your king",
+                win_prob_lost=j.win_prob_lost, punished=True,
+            ))
+        return tags
+
+    def _king_pressure(self, by_num: dict[int, Ply], start: int, max_ply: int,
+                       me: Color) -> tuple[int, bool]:
+        """(opponent checks against me, mated) over the lookahead window."""
+        checks, mate = 0, False
+        for n in range(start + 1, min(start + self.lookahead, max_ply) + 1):
+            p = by_num.get(n)
+            if p is None:
+                break
+            if p.color is me:            # only the opponent's moves attack me
+                continue
+            b = chess.Board(p.fen_after)
+            if b.is_check():
+                side = Color.WHITE if b.turn == chess.WHITE else Color.BLACK
+                if side is me:
+                    checks += 1
+                    if b.is_checkmate():
+                        mate = True
+        return checks, mate
+
+
 def tag_game(
     game: Game,
     judgments: list[MoveJudgment],
@@ -265,7 +343,8 @@ def tag_game(
 ) -> list[Tag]:
     """Run detectors over a classified game; tags sorted by ply."""
     if detectors is None:
-        detectors = [HungPieceDetector(), AllowedTacticDetector()]
+        detectors = [HungPieceDetector(), AllowedTacticDetector(),
+                     AllowedAttackDetector()]
     tags: list[Tag] = []
     for d in detectors:
         tags.extend(d.detect(game, judgments))

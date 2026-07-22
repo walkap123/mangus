@@ -28,7 +28,8 @@ from .ingest import ChessComClient, DEFAULT_UA
 from .models import Game, GameResult
 from .store import Store
 from .tag import (
-    AllowedTacticDetector, Detector, HungPieceDetector, Tag, tag_game,
+    AllowedAttackDetector, AllowedTacticDetector, Detector, HungPieceDetector,
+    Tag, tag_game,
 )
 
 
@@ -156,6 +157,27 @@ class CoachReport:
                          f"times across {len(games_with)} of {n_games} games.",
                 detail="A move that let the opponent win material by force over "
                        "the next few moves — and they took it every time here.",
+                examples=examples,
+            ))
+
+        # 1c) Allowed attacks / mates: win% collapsed with no material change.
+        attacks = [(a, t) for a in self.analyses for t in a.tags
+                   if t.name == "allowed_attack"]
+        if attacks:
+            examples = [{
+                "url": a.game.url, "move": t.san, "detail": t.detail,
+                "ply": t.ply_number, "result": a.game.result.value,
+                "punished": True,
+            } for a, t in attacks[:6]]
+            games_with = {id(a) for a, _ in attacks}
+            n_mate = sum(1 for _, t in attacks if "mating" in t.detail)
+            out.append(Finding(
+                key="allowed_attacks",
+                headline=f"You walked into a decisive attack {len(attacks)} "
+                         f"times across {len(games_with)} of {n_games} games"
+                         + (f" ({n_mate} were mating attacks)." if n_mate else "."),
+                detail="Your position collapsed with no material lost — king "
+                       "safety / attack, not a hang. Different skill to fix.",
                 examples=examples,
             ))
 
@@ -293,7 +315,8 @@ def run(
 ) -> CoachReport:
     """Fetch, analyze, and aggregate a user's recent games into a CoachReport."""
     classifier = classifier or MoveClassifier()
-    detectors = detectors or [HungPieceDetector(), AllowedTacticDetector()]
+    detectors = detectors or [HungPieceDetector(), AllowedTacticDetector(),
+                              AllowedAttackDetector()]
     client = ChessComClient(user_agent=ua)
 
     analyses: list[GameAnalysis] = []

@@ -26,11 +26,14 @@ evals (cache-first), classifies your moves, tags them, and aggregates across
 games into findings, emitted as JSON (the UI data contract) + an HTML view.
 Run: `python -m chess_coach.coach USERNAME --max 8 --depth 12 --ua "..."`.
 
-tag layer: `tag.py` has two detectors — hung-piece (immediate free capture) and
-allowed-tactic (opponent wins material by force over the next few plies;
-punished-gated; defers to hung-piece for one-move captures). Both net out what
-the move itself captured and separate the mistake from whether it was punished.
-Next detectors: allowed-mate / missed-tactic / time-trouble.
+tag layer: `tag.py` has three detectors, all punished-gated and mutually
+exclusive by material band: hung-piece (one-move free capture, ≥ minor),
+allowed-tactic (forced material win over a few plies, ≥ minor), and
+allowed-attack (win% collapse with NO material change AND real king pressure —
+opponent checks / mate). The king-pressure requirement is deliberate: a
+non-material collapse without checks (squandered compensation, positional drift)
+is left as a generic blunder, never called an "attack". Next: missed-tactic,
+time-trouble, and possibly a lower material band for exchange-size tactics.
 ```
 
 Under all of it: **`store.py`** (SQLite) persists ingested games and caches
