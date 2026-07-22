@@ -31,7 +31,8 @@ function GameStats({ g, size = 'md' }: { g: Game; size?: 'sm' | 'md' }) {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<'home' | 'loading' | 'games' | 'review'>('home');
+  const [screen, setScreen] = useState<'home' | 'loading' | 'main' | 'review'>('home');
+  const [tab, setTab] = useState<'games' | 'patterns'>('games');
   const [username, setUsername] = useState('mastapate');
   const [apiBase, setApiBase] = useState(defaultApiBase());
   const [payload, setPayload] = useState<Payload | null>(null);
@@ -45,7 +46,8 @@ export default function App() {
     try {
       const p = await analyze(username.trim(), apiBase.trim());
       setPayload(p);
-      setScreen('games');
+      setTab('games');
+      setScreen('main');
     } catch (e: any) {
       setError(e.message || 'Could not reach the server.');
       setScreen('home');
@@ -72,13 +74,54 @@ export default function App() {
           <Text style={[styles.muted, { fontSize: 12 }]}>first run is slower — Stockfish is thinking</Text>
         </View>
       )}
-      {screen === 'games' && payload && (
-        <Games payload={payload} onOpen={openGame} onBack={() => setScreen('home')} />
+      {screen === 'main' && payload && (
+        <View style={{ flex: 1 }}>
+          <View style={styles.topBar}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.topUser}>{payload.username}</Text>
+              <Record payload={payload} />
+            </View>
+            <Pressable onPress={() => setScreen('home')} hitSlop={10}>
+              <Text style={styles.back}>change</Text>
+            </Pressable>
+          </View>
+          {tab === 'games'
+            ? <GamesTab payload={payload} onOpen={openGame} />
+            : <PatternsTab payload={payload} onOpen={openGame} />}
+          <TabBar tab={tab} setTab={setTab} />
+        </View>
       )}
       {screen === 'review' && payload && (
-        <Review game={payload.games[gameIndex]} initialPly={initialPly} onBack={() => setScreen('games')} />
+        <Review game={payload.games[gameIndex]} initialPly={initialPly} onBack={() => setScreen('main')} />
       )}
     </SafeAreaView>
+  );
+}
+
+function Record({ payload }: { payload: Payload }) {
+  const wins = payload.games.filter((g) => g.result === 'win').length;
+  const losses = payload.games.filter((g) => g.result === 'loss').length;
+  const draws = payload.games.length - wins - losses;
+  return (
+    <View style={styles.recordRow}>
+      <Text style={[styles.record, { color: C.green }]}>{wins}W</Text>
+      <Text style={[styles.record, { color: C.red }]}>{losses}L</Text>
+      <Text style={[styles.record, { color: C.muted }]}>{draws}D</Text>
+      <Text style={[styles.muted, { marginLeft: 4 }]}>· {payload.games.length} games</Text>
+    </View>
+  );
+}
+
+function TabBar({ tab, setTab }: { tab: 'games' | 'patterns'; setTab: (t: 'games' | 'patterns') => void }) {
+  const items: [typeof tab, string][] = [['games', '♟  Games'], ['patterns', '◔  Patterns']];
+  return (
+    <View style={styles.tabBar}>
+      {items.map(([t, label]) => (
+        <Pressable key={t} style={styles.tabBtn} onPress={() => setTab(t)}>
+          <Text style={[styles.tabLabel, tab === t && styles.tabActive]}>{label}</Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -104,12 +147,9 @@ function Home({ username, setUsername, apiBase, setApiBase, error, onRun }: any)
   );
 }
 
-function Games({ payload, onOpen, onBack }: {
-  payload: Payload; onOpen: (gi: number, ply: number) => void; onBack: () => void;
+function GamesTab({ payload, onOpen }: {
+  payload: Payload; onOpen: (gi: number, ply: number) => void;
 }) {
-  const wins = payload.games.filter((g) => g.result === 'win').length;
-  const losses = payload.games.filter((g) => g.result === 'loss').length;
-  const draws = payload.games.length - wins - losses;
   const recent = payload.games[0];
   const boardSize = Math.min(Dimensions.get('window').width - 32, 400);
   const lastPly = recent && recent.plies.length ? recent.plies[recent.plies.length - 1] : null;
@@ -121,16 +161,7 @@ function Games({ payload, onOpen, onBack }: {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.wrap}>
-      <Pressable onPress={onBack} hitSlop={12}><Text style={styles.back}>‹ back</Text></Pressable>
-      <Text style={styles.h1}>{payload.username}</Text>
-      <View style={styles.recordRow}>
-        <Text style={[styles.record, { color: C.green }]}>{wins}W</Text>
-        <Text style={[styles.record, { color: C.red }]}>{losses}L</Text>
-        <Text style={[styles.record, { color: C.muted }]}>{draws}D</Text>
-        <Text style={[styles.muted, { marginLeft: 4 }]}>· {payload.games.length} games</Text>
-      </View>
-
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap}>
       {recent && recentFen && (
         <>
           <Text style={styles.h2}>Most recent</Text>
@@ -157,17 +188,35 @@ function Games({ payload, onOpen, onBack }: {
           <View style={[styles.dot, { backgroundColor: resultColor(g.result) }]} />
         </Pressable>
       ))}
+    </ScrollView>
+  );
+}
 
-      {payload.findings.length > 0 && (
-        <>
-          <Text style={styles.h2}>Patterns</Text>
-          {payload.findings.map((f, i) => (
-            <View key={i} style={styles.finding}>
-              <Text style={styles.findingH}>{f.headline}</Text>
-            </View>
-          ))}
-        </>
-      )}
+function PatternsTab({ payload, onOpen }: {
+  payload: Payload; onOpen: (gi: number, ply: number) => void;
+}) {
+  const decisive = payload.decisiveLosses.filter((e) => e.decisive);
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap}>
+      <Text style={styles.h2}>Why you actually lost</Text>
+      {decisive.length ? decisive.map((e, i) => (
+        <Pressable key={i} style={styles.gameRow}
+          onPress={() => e.gameIndex != null && onOpen(e.gameIndex, e.ply!)}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowTitle} numberOfLines={1}>{e.opponent} · {e.move_number}.{e.san}</Text>
+            <Text style={styles.rowSub} numberOfLines={2}>{e.detail} · {e.win_before}→{e.win_after}%</Text>
+          </View>
+          <Text style={styles.chev}>›</Text>
+        </Pressable>
+      )) : <Text style={[styles.muted, { marginTop: 6 }]}>No decisive losses in this batch — nice.</Text>}
+
+      <Text style={styles.h2}>Habits to fix</Text>
+      {payload.findings.length ? payload.findings.map((f, i) => (
+        <View key={i} style={styles.patternCard}>
+          <Text style={styles.findingH}>{f.headline}</Text>
+          {f.detail ? <Text style={styles.patternDetail}>{f.detail}</Text> : null}
+        </View>
+      )) : <Text style={[styles.muted, { marginTop: 6 }]}>No recurring habits found.</Text>}
     </ScrollView>
   );
 }
@@ -326,11 +375,21 @@ const styles = StyleSheet.create({
   resultText: { fontSize: 12, fontWeight: '800', letterSpacing: 1, marginTop: 2 },
 
   gameRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 12, padding: 12, marginTop: 8, gap: 10 },
-  rowTitle: { color: C.fg, fontSize: 15, fontWeight: '600', marginBottom: 6 },
+  rowTitle: { color: C.fg, fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  rowSub: { color: C.muted, fontSize: 12 },
+  chev: { color: C.muted, fontSize: 22, marginLeft: 4 },
   dot: { width: 10, height: 10, borderRadius: 5 },
 
-  finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingLeft: 12, paddingVertical: 3, marginTop: 8 },
   findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
+  patternCard: { backgroundColor: C.card, borderRadius: 12, padding: 14, marginTop: 8 },
+  patternDetail: { color: C.muted, fontSize: 13, marginTop: 5, lineHeight: 19 },
+
+  topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: C.line },
+  topUser: { color: C.fg, fontSize: 20, fontWeight: '800' },
+  tabBar: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card },
+  tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+  tabLabel: { color: C.muted, fontSize: 13, fontWeight: '700' },
+  tabActive: { color: C.accent },
 
   reviewHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   boardRow: { flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'flex-start' },
