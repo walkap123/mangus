@@ -4,7 +4,7 @@ import {
   ActivityIndicator, StyleSheet, Dimensions, StatusBar,
 } from 'react-native';
 import { analyze, defaultApiBase } from './src/api';
-import { Board } from './src/Board';
+import { Board, Slide } from './src/Board';
 import { C, CLS } from './src/theme';
 import type { Payload, Game, DecisiveLoss } from './src/types';
 
@@ -154,6 +154,7 @@ function Review({ game, initialPly, onBack }: {
 }) {
   const [ply, setPly] = useState(initialPly);
   const [showBest, setShowBest] = useState(false);
+  const [slide, setSlide] = useState<Slide>(null);
   const positions = useMemo(
     () => [game.startFen, ...game.plies.map((p) => p.fen)], [game]
   );
@@ -172,7 +173,17 @@ function Review({ game, initialPly, onBack }: {
     if (mv.tagSquare) highlights[mv.tagSquare] = C.red;
   }
   const ev = game.posEvals ? game.posEvals[ply] : null;
-  const step = (d: number) => { setShowBest(false); setPly((p) => Math.max(0, Math.min(game.plies.length, p + d))); };
+  const len = game.plies.length;
+  const go = (target: number, sl: Slide) => {
+    if (target < 0 || target > len) return;
+    setShowBest(false); setSlide(sl); setPly(target);
+  };
+  const step = (d: number) => {
+    let sl: Slide = null;
+    if (d === 1 && ply < len) { const u = game.plies[ply].uci; sl = { from: u.slice(0, 2), to: u.slice(2, 4) }; }
+    else if (d === -1 && ply > 0) { const u = game.plies[ply - 1].uci; sl = { from: u.slice(2, 4), to: u.slice(0, 2) }; }
+    go(ply + d, sl);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
@@ -186,12 +197,13 @@ function Review({ game, initialPly, onBack }: {
             <Text style={styles.evalNum}>{ev}%</Text>
           </View>
         )}
-        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights} />
+        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights}
+          slide={showBest ? null : slide} />
       </View>
 
       <View style={styles.controls}>
-        {[['⏮', () => { setShowBest(false); setPly(0); }], ['◀', () => step(-1)],
-          ['▶', () => step(1)], ['⏭', () => { setShowBest(false); setPly(game.plies.length); }],
+        {[['⏮', () => go(0, null)], ['◀', () => step(-1)],
+          ['▶', () => step(1)], ['⏭', () => go(len, null)],
         ].map(([label, fn]: any, i) => (
           <Pressable key={i} style={styles.ctrl} onPress={fn}>
             <Text style={styles.ctrlText}>{label}</Text>
@@ -223,7 +235,7 @@ function Review({ game, initialPly, onBack }: {
               </Text>
             ) : null}
             {mv.mine && mv.bestUci && mv.cls !== 'best' && mv.cls !== 'good' ? (
-              <Pressable style={styles.bestBtn} onPress={() => setShowBest((s) => !s)}>
+              <Pressable style={styles.bestBtn} onPress={() => { setSlide(null); setShowBest((s) => !s); }}>
                 <Text style={styles.bestBtnText}>
                   {showBest ? '↩ back to the game' : 'What should I have played?'}
                 </Text>
@@ -235,7 +247,7 @@ function Review({ game, initialPly, onBack }: {
 
       <View style={styles.moveList}>
         {game.plies.map((p, i) => (
-          <Pressable key={i} onPress={() => { setShowBest(false); setPly(i + 1); }}>
+          <Pressable key={i} onPress={() => go(i + 1, null)}>
             <Text style={[styles.moveItem, i + 1 === ply ? styles.moveCur : null]}>
               {p.color === 'white' ? `${p.moveNo}. ` : ''}{p.san}
               {p.mine && p.cls && p.cls !== 'best' && p.cls !== 'good'
