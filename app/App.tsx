@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   SafeAreaView, ScrollView, View, Text, TextInput, Pressable,
   ActivityIndicator, StyleSheet, Dimensions, StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analyze, defaultApiBase } from './src/api';
 import { Board, Slide } from './src/Board';
 import { C, CLS, accColor, resultColor } from './src/theme';
@@ -33,31 +34,59 @@ function GameStats({ g, size = 'md' }: { g: Game; size?: 'sm' | 'md' }) {
 export default function App() {
   const [screen, setScreen] = useState<'home' | 'loading' | 'main' | 'review'>('home');
   const [tab, setTab] = useState<'games' | 'patterns'>('games');
-  const [username, setUsername] = useState('mastapate');
+  const [hydrated, setHydrated] = useState(false);
+  const [username, setUsername] = useState('');
   const [apiBase, setApiBase] = useState(defaultApiBase());
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gameIndex, setGameIndex] = useState(0);
   const [initialPly, setInitialPly] = useState(0);
 
-  async function run() {
+  async function run(u: string = username, b: string = apiBase) {
     setError(null);
     setScreen('loading');
     try {
-      const p = await analyze(username.trim(), apiBase.trim());
+      const p = await analyze(u.trim(), b.trim());
       setPayload(p);
       setTab('games');
       setScreen('main');
+      AsyncStorage.setItem('username', u.trim());
+      AsyncStorage.setItem('apiBase', b.trim());
     } catch (e: any) {
       setError(e.message || 'Could not reach the server.');
       setScreen('home');
     }
   }
 
+  // remember the last username/server and jump straight in on launch
+  useEffect(() => {
+    (async () => {
+      try {
+        const [u, b] = await Promise.all([
+          AsyncStorage.getItem('username'),
+          AsyncStorage.getItem('apiBase'),
+        ]);
+        if (b) setApiBase(b);
+        if (u) { setUsername(u); setHydrated(true); run(u, b || apiBase); return; }
+      } catch {}
+      setHydrated(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function openGame(gi: number, ply: number) {
     setGameIndex(gi);
     setInitialPly(ply);
     setScreen('review');
+  }
+
+  if (!hydrated) {
+    return (
+      <SafeAreaView style={styles.app}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.center}><ActivityIndicator color={C.accent} size="large" /></View>
+      </SafeAreaView>
+    );
   }
 
   return (
