@@ -6,7 +6,7 @@ import {
 import { analyze, defaultApiBase } from './src/api';
 import { Board, Slide } from './src/Board';
 import { C, CLS, accColor, resultColor } from './src/theme';
-import type { Payload, Game } from './src/types';
+import type { Payload, Game, Finding } from './src/types';
 
 const sqOf = (uci: string) => [uci.slice(0, 2), uci.slice(2, 4)];
 
@@ -195,28 +195,49 @@ function GamesTab({ payload, onOpen }: {
 function PatternsTab({ payload, onOpen }: {
   payload: Payload; onOpen: (gi: number, ply: number) => void;
 }) {
-  const decisive = payload.decisiveLosses.filter((e) => e.decisive);
+  const [selected, setSelected] = useState<Finding | null>(null);
+
+  if (selected) {
+    return (
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap}>
+        <Pressable onPress={() => setSelected(null)} hitSlop={12}><Text style={styles.back}>‹ patterns</Text></Pressable>
+        <Text style={styles.insightHead}>{selected.headline}</Text>
+        {selected.detail ? <Text style={styles.patternDetail}>{selected.detail}</Text> : null}
+        <Text style={styles.h2}>From your games</Text>
+        {selected.examples.length ? selected.examples.map((e, i) => (
+          <Pressable key={i} style={styles.gameRow} disabled={e.gameIndex == null}
+            onPress={() => e.gameIndex != null && onOpen(e.gameIndex, e.ply ?? 0)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowTitle} numberOfLines={2}>{e.detail}</Text>
+              {e.result ? (
+                <Text style={[styles.rowSub, { color: resultColor(e.result) }]}>{e.result}</Text>
+              ) : null}
+            </View>
+            {e.gameIndex != null ? <Text style={styles.chev}>›</Text> : null}
+          </Pressable>
+        )) : <Text style={[styles.muted, { marginTop: 6 }]}>No move-by-move examples for this one.</Text>}
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap}>
-      <Text style={styles.h2}>Why you actually lost</Text>
-      {decisive.length ? decisive.map((e, i) => (
-        <Pressable key={i} style={styles.gameRow}
-          onPress={() => e.gameIndex != null && onOpen(e.gameIndex, e.ply!)}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle} numberOfLines={1}>{e.opponent} · {e.move_number}.{e.san}</Text>
-            <Text style={styles.rowSub} numberOfLines={2}>{e.detail} · {e.win_before}→{e.win_after}%</Text>
-          </View>
-          <Text style={styles.chev}>›</Text>
-        </Pressable>
-      )) : <Text style={[styles.muted, { marginTop: 6 }]}>No decisive losses in this batch — nice.</Text>}
-
-      <Text style={styles.h2}>Habits to fix</Text>
-      {payload.findings.length ? payload.findings.map((f, i) => (
-        <View key={i} style={styles.patternCard}>
-          <Text style={styles.findingH}>{f.headline}</Text>
-          {f.detail ? <Text style={styles.patternDetail}>{f.detail}</Text> : null}
-        </View>
-      )) : <Text style={[styles.muted, { marginTop: 6 }]}>No recurring habits found.</Text>}
+      <Text style={styles.h2}>Your patterns</Text>
+      {payload.findings.length ? payload.findings.map((f, i) => {
+        const hasEx = f.examples && f.examples.length > 0;
+        return (
+          <Pressable key={i} style={styles.patternCard} disabled={!hasEx} onPress={() => hasEx && setSelected(f)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.findingH, { flex: 1 }]}>{f.headline}</Text>
+              {hasEx ? <Text style={styles.chev}>›</Text> : null}
+            </View>
+            {f.detail ? <Text style={styles.patternDetail} numberOfLines={2}>{f.detail}</Text> : null}
+            {hasEx ? (
+              <Text style={styles.exHint}>{f.examples.length} example{f.examples.length > 1 ? 's' : ''} · tap to see</Text>
+            ) : null}
+          </Pressable>
+        );
+      }) : <Text style={[styles.muted, { marginTop: 6 }]}>No recurring patterns found in this batch.</Text>}
     </ScrollView>
   );
 }
@@ -383,6 +404,8 @@ const styles = StyleSheet.create({
   findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
   patternCard: { backgroundColor: C.card, borderRadius: 12, padding: 14, marginTop: 8 },
   patternDetail: { color: C.muted, fontSize: 13, marginTop: 5, lineHeight: 19 },
+  insightHead: { color: C.fg, fontSize: 19, fontWeight: '800', marginTop: 4, marginBottom: 6, lineHeight: 25 },
+  exHint: { color: C.accent, fontSize: 12, fontWeight: '700', marginTop: 10 },
 
   topBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: C.line },
   topUser: { color: C.fg, fontSize: 20, fontWeight: '800' },

@@ -174,10 +174,15 @@ def viewer_data(report: "CoachReport", evaluator: "StockfishEval | None" = None)
     for g, a in zip(games, report.analyses):
         g["elo"] = _elo_estimate(g["accuracy"], a.game.my_rating, avg_acc, avg_rating)
 
+    findings = [f.to_dict() for f in report.findings()]
+    for f in findings:
+        for ex in f.get("examples", []):
+            ex["gameIndex"] = url_to_idx.get(ex.get("url"))
+
     return {
         "username": report.username,
         "games": games,
-        "findings": [f.to_dict() for f in report.findings()],
+        "findings": findings,
         "decisiveLosses": dl,
     }
 

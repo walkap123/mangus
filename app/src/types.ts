@@ -36,11 +36,21 @@ export interface Game {
   elo: number | null;
 }
 
+export interface FindingExample {
+  url?: string;
+  move?: string;
+  detail?: string;
+  ply?: number;
+  result?: string;
+  punished?: boolean;
+  gameIndex?: number | null;
+}
+
 export interface Finding {
   key: string;
   headline: string;
   detail: string;
-  examples: any[];
+  examples: FindingExample[];
 }
 
 export interface DecisiveLoss {
