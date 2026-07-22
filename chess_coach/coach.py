@@ -459,6 +459,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = p.parse_args(argv)
 
     time_classes = set(args.time_class.split(",")) if args.time_class else None
+    from .viewer import render_viewer
     store = Store(args.db)
     try:
         with StockfishEval(depth=args.depth, store=store) as sf:
@@ -469,13 +470,15 @@ def main(argv: Optional[list[str]] = None) -> int:
                 max_games=args.max, time_classes=time_classes,
                 rated_only=args.rated, ua=args.ua,
             )
+            # generate the board viewer inside the engine context so the eval
+            # bar can evaluate every position (cache-first)
+            board_html = render_viewer(report, evaluator=sf)
     finally:
         store.close()
 
-    from .viewer import render_viewer
     Path(f"{args.out}.json").write_text(report.to_json())
     Path(f"{args.out}.html").write_text(render_html(report))
-    Path(f"{args.out}_board.html").write_text(render_viewer(report))
+    Path(f"{args.out}_board.html").write_text(board_html)
     print(f"\nWrote {args.out}.json, {args.out}.html and {args.out}_board.html "
           f"({len(report.analyses)} games).", file=sys.stderr)
     return 0
