@@ -59,17 +59,18 @@ def _accuracy(judgments: "list[MoveJudgment]") -> Optional[float]:
     accs = []
     for j in judgments:
         wl = max(0.0, j.win_prob_before - j.win_prob_after) * 100.0  # win% points lost
-        accs.append(max(1.0, min(100.0, 100.0 * math.exp(-0.045 * wl))))
-    # harmonic mean: your worst moves weigh heaviest, so blunders actually bite
+        accs.append(max(1.0, min(100.0, 100.0 * math.exp(-0.06 * wl))))
+    # harmonic mean: your worst moves weigh heaviest, so blunders actually bite.
+    # k=0.06 calibrated so a blunder-heavy game lands near chess.com's number.
     return round(len(accs) / sum(1.0 / a for a in accs), 1)
 
 
 def _elo_estimate(accuracy: Optional[float]) -> Optional[int]:
-    """Rough 'you played like ~N' rating from accuracy. An estimate, not a rating —
-    centered so a typical club game (~70% harmonic accuracy) lands near 1400."""
+    """Rough 'you played like ~N' rating from accuracy. An estimate, not a rating.
+    Anchored to chess.com: ~20% accuracy ≈ ~100, scaling up from there."""
     if accuracy is None:
         return None
-    return int(max(600, min(2400, round(1400 + 35 * (accuracy - 70)))))
+    return int(max(100, min(2600, round(100 + 30 * (accuracy - 20)))))
 
 
 def _best_san(fen_before: str, uci: Optional[str]) -> Optional[str]:
