@@ -65,12 +65,22 @@ def _accuracy(judgments: "list[MoveJudgment]") -> Optional[float]:
     return round(len(accs) / sum(1.0 / a for a in accs), 1)
 
 
-def _elo_estimate(accuracy: Optional[float]) -> Optional[int]:
-    """Rough 'you played like ~N' rating from accuracy. An estimate, not a rating.
-    Anchored to chess.com: ~20% accuracy ≈ ~100, scaling up from there."""
-    if accuracy is None:
+def _elo_estimate(accuracy: Optional[float], my_rating: Optional[int],
+                  avg_acc: Optional[float], avg_rating: Optional[float]) -> Optional[int]:
+    """'You played like ~N' anchored to YOUR real rating.
+
+    An absolute accuracy->rating curve can't work (90% means ~2000 for a master,
+    ~1300 for a 650 player). So we anchor to the player's actual chess.com rating
+    (`base`) and treat their own average accuracy as par: a game at par maps to
+    their rating, better games rise, worse games fall (~22 rating points per
+    accuracy point). Self-calibrates per player.
+    """
+    if accuracy is None or avg_acc is None:
         return None
-    return int(max(100, min(2600, round(100 + 30 * (accuracy - 20)))))
+    base = my_rating if my_rating else avg_rating
+    if base is None:
+        return None
+    return int(max(100, min(base + 800, round(base + 22 * (accuracy - avg_acc)))))
 
 
 def _best_san(fen_before: str, uci: Optional[str]) -> Optional[str]:
@@ -119,14 +129,14 @@ def _game_data(a: "GameAnalysis", evaluator) -> dict:
             w = _white_winprob(f, evaluator)
             pos_evals.append(round((w if my_white else 1.0 - w) * 100))
 
-    accuracy = _accuracy(a.judgments)
     return {
         "white": game.white.username, "black": game.black.username,
         "opponent": game.opponent.username, "perspective": game.perspective.value,
         "result": game.result.value, "timeClass": game.time_class, "url": game.url,
         "startFen": game.moves[0].fen_before if game.moves else START_FEN,
         "plies": plies, "posEvals": pos_evals,
-        "accuracy": accuracy, "elo": _elo_estimate(accuracy),
+        "accuracy": _accuracy(a.judgments),
+        "elo": None,  # filled by viewer_data (needs the batch to anchor)
     }
 
 
@@ -140,9 +150,20 @@ def viewer_data(report: "CoachReport", evaluator: "StockfishEval | None" = None)
     dl = report.decisive_losses()
     for e in dl:
         e["gameIndex"] = url_to_idx.get(e["url"])
+
+    games = [_game_data(a, evaluator) for a in report.analyses]
+    # rating-anchored ELO estimate: par = your average accuracy over these games,
+    # base = your actual rating that game.
+    accs = [g["accuracy"] for g in games if g["accuracy"] is not None]
+    avg_acc = sum(accs) / len(accs) if accs else None
+    ratings = [a.game.my_rating for a in report.analyses if a.game.my_rating]
+    avg_rating = sum(ratings) / len(ratings) if ratings else None
+    for g, a in zip(games, report.analyses):
+        g["elo"] = _elo_estimate(g["accuracy"], a.game.my_rating, avg_acc, avg_rating)
+
     return {
         "username": report.username,
-        "games": [_game_data(a, evaluator) for a in report.analyses],
+        "games": games,
         "findings": [f.to_dict() for f in report.findings()],
         "decisiveLosses": dl,
     }
