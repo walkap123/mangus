@@ -98,45 +98,49 @@ function Games({ payload, onOpen, onBack }: {
   const wins = payload.games.filter((g) => g.result === 'win').length;
   const losses = payload.games.filter((g) => g.result === 'loss').length;
   const draws = payload.games.length - wins - losses;
+  const decisive = payload.decisiveLosses.filter((e) => e.decisive);
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
-      <Pressable onPress={onBack}><Text style={styles.back}>‹ back</Text></Pressable>
+      <Pressable onPress={onBack} hitSlop={10}><Text style={styles.back}>‹ back</Text></Pressable>
       <Text style={styles.h1}>{payload.username}</Text>
       <Text style={styles.muted}>{payload.games.length} games · {wins}W {losses}L {draws}D</Text>
 
-      <Text style={styles.h2}>Why you actually lost</Text>
-      {payload.decisiveLosses.map((e: DecisiveLoss, i) => (
-        <Pressable
-          key={i} style={styles.lossCard}
-          onPress={() => e.decisive && e.gameIndex != null && onOpen(e.gameIndex, e.ply!)}
-        >
-          {e.decisive ? (
-            <>
-              <Text style={styles.lossTitle}>vs {e.opponent}: {e.move_number}. {e.san} — {e.detail}</Text>
-              <Text style={styles.muted}>win {e.win_before}% → {e.win_after}% · tap to see it</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.lossTitle}>vs {e.opponent}</Text>
-              <Text style={styles.muted}>{e.detail}</Text>
-            </>
-          )}
-        </Pressable>
-      ))}
+      {decisive.length > 0 && (
+        <>
+          <Text style={styles.h2}>Why you lost</Text>
+          {decisive.map((e: DecisiveLoss, i) => (
+            <Pressable
+              key={i} style={styles.row}
+              onPress={() => e.gameIndex != null && onOpen(e.gameIndex, e.ply!)}
+            >
+              <View style={styles.rowMain}>
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {e.opponent} · {e.move_number}.{e.san}
+                </Text>
+                <Text style={styles.rowSub} numberOfLines={1}>
+                  {e.detail} · {e.win_before}→{e.win_after}%
+                </Text>
+              </View>
+              <Text style={styles.chev}>›</Text>
+            </Pressable>
+          ))}
+        </>
+      )}
 
-      <Text style={styles.h2}>All your mistakes</Text>
+      <Text style={styles.h2}>Patterns</Text>
       {payload.findings.map((f, i) => (
         <View key={i} style={styles.finding}>
           <Text style={styles.findingH}>{f.headline}</Text>
-          {f.detail ? <Text style={styles.muted}>{f.detail}</Text> : null}
         </View>
       ))}
 
       <Text style={styles.h2}>Games</Text>
       {payload.games.map((g, i) => (
-        <Pressable key={i} style={styles.gameRow} onPress={() => onOpen(i, 0)}>
-          <Text style={styles.gameText}>{g.timeClass} vs {g.opponent}</Text>
-          <Text style={[styles.gameRes, {
+        <Pressable key={i} style={styles.row} onPress={() => onOpen(i, 0)}>
+          <View style={styles.rowMain}>
+            <Text style={styles.rowTitle} numberOfLines={1}>{g.timeClass} · {g.opponent}</Text>
+          </View>
+          <Text style={[styles.pill, {
             color: g.result === 'win' ? C.green : g.result === 'loss' ? C.red : C.muted,
           }]}>{g.result}</Text>
         </Pressable>
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
   wrap: { padding: 18, paddingBottom: 60 },
   homeWrap: { padding: 24, paddingTop: 80, gap: 8 },
   h1: { color: C.fg, fontSize: 26, fontWeight: '800' },
-  h2: { color: C.fg, fontSize: 17, fontWeight: '700', marginTop: 22, marginBottom: 6 },
+  h2: { color: C.fg, fontSize: 15, fontWeight: '700', marginTop: 18, marginBottom: 4 },
   muted: { color: C.muted, fontSize: 13 },
   label: { color: C.muted, fontSize: 12, marginTop: 16, marginBottom: 4 },
   input: {
@@ -280,11 +284,13 @@ const styles = StyleSheet.create({
   moveList: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 16, gap: 2 },
   moveItem: { color: C.fg, fontSize: 14, paddingHorizontal: 4, paddingVertical: 2 },
   moveCur: { backgroundColor: C.accent, color: '#111', borderRadius: 4, fontWeight: '700', overflow: 'hidden' },
-  lossCard: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 10, padding: 12, marginTop: 8 },
-  lossTitle: { color: C.fg, fontWeight: '600', marginBottom: 2 },
-  finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingHorizontal: 12, paddingVertical: 4, marginTop: 8 },
-  findingH: { color: C.fg, fontWeight: '600', marginBottom: 2 },
-  gameRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 10, padding: 12, marginTop: 8 },
-  gameText: { color: C.fg },
-  gameRes: { fontWeight: '700' },
+  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card,
+         borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12, marginTop: 6 },
+  rowMain: { flex: 1 },
+  rowTitle: { color: C.fg, fontSize: 14, fontWeight: '600' },
+  rowSub: { color: C.muted, fontSize: 12, marginTop: 1 },
+  chev: { color: C.muted, fontSize: 20, marginLeft: 8 },
+  pill: { fontWeight: '700', fontSize: 13, marginLeft: 8 },
+  finding: { borderLeftWidth: 3, borderLeftColor: C.accent, paddingLeft: 10, paddingVertical: 2, marginTop: 8 },
+  findingH: { color: C.fg, fontWeight: '600', fontSize: 14 },
 });

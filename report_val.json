@@ -1,0 +1,991 @@
+{
+  "username": "mastapate",
+  "generated_at": "2026-07-22T19:16:50+00:00",
+  "params": {
+    "max_games": 30,
+    "depth": 16,
+    "time_classes": null,
+    "rated_only": false
+  },
+  "summary": {
+    "games": 30,
+    "wins": 12,
+    "losses": 17,
+    "draws": 1,
+    "my_moves": 1002,
+    "move_classes": {
+      "best": 605,
+      "good": 259,
+      "inaccuracy": 77,
+      "mistake": 20,
+      "blunder": 41
+    },
+    "blunders_per_game": 1.37,
+    "best_pct": 60.4,
+    "serious_mistakes": 61,
+    "mistakes_punished": 39
+  },
+  "findings": [
+    {
+      "key": "hung_pieces",
+      "headline": "You left a piece hanging 12 times across 8 of 30 games.",
+      "detail": "Punishment: 6 the opponent took, 6 they missed. An unpunished hang isn't why you lost \u2014 but it's a habit to fix before someone does take it.",
+      "examples": [
+        {
+          "url": "https://www.chess.com/game/live/171926465016",
+          "move": "Be5",
+          "detail": "hung a rook on a1 (-5) \u2014 opponent missed it",
+          "ply": 17,
+          "result": "loss",
+          "punished": false
+        },
+        {
+          "url": "https://www.chess.com/game/live/171926465016",
+          "move": "Bxg7",
+          "detail": "hung a rook on a1 (-4) \u2014 opponent missed it",
+          "ply": 19,
+          "result": "loss",
+          "punished": false
+        },
+        {
+          "url": "https://www.chess.com/game/live/171890751494",
+          "move": "Rc4",
+          "detail": "hung a rook on c4 (-5) \u2014 opponent missed it",
+          "ply": 52,
+          "result": "loss",
+          "punished": false
+        },
+        {
+          "url": "https://www.chess.com/game/live/171843951222",
+          "move": "Qg5",
+          "detail": "hung a queen on g5 (-6)",
+          "ply": 32,
+          "result": "draw",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171843951222",
+          "move": "a5",
+          "detail": "hung a rook on f5 (-5)",
+          "ply": 98,
+          "result": "draw",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171716874016",
+          "move": "Qb3",
+          "detail": "hung a knight on d2 (-3) \u2014 opponent missed it",
+          "ply": 39,
+          "result": "loss",
+          "punished": false
+        }
+      ]
+    },
+    {
+      "key": "allowed_tactics",
+      "headline": "You allowed a material-winning tactic 5 times across 5 of 30 games.",
+      "detail": "A move that let the opponent win material by force over the next few moves \u2014 and they took it every time here.",
+      "examples": [
+        {
+          "url": "https://www.chess.com/game/live/171926465016",
+          "move": "Qh5+",
+          "detail": "allowed a tactic (-5)",
+          "ply": 21,
+          "result": "loss",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171892630360",
+          "move": "Qxd7+",
+          "detail": "allowed a tactic (-10)",
+          "ply": 63,
+          "result": "loss",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171717333014",
+          "move": "Qd5",
+          "detail": "allowed a tactic (-3)",
+          "ply": 30,
+          "result": "loss",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171666573960",
+          "move": "Qxc5",
+          "detail": "allowed a tactic (-9)",
+          "ply": 52,
+          "result": "loss",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171634848716",
+          "move": "Qxh1",
+          "detail": "allowed a tactic (-6)",
+          "ply": 42,
+          "result": "loss",
+          "punished": true
+        }
+      ]
+    },
+    {
+      "key": "allowed_attacks",
+      "headline": "You walked into a decisive attack 3 times across 2 of 30 games.",
+      "detail": "Your position collapsed with no material lost \u2014 king safety / attack, not a hang. Different skill to fix.",
+      "examples": [
+        {
+          "url": "https://www.chess.com/game/live/171630437352",
+          "move": "Bxa6",
+          "detail": "allowed an attack on your king",
+          "ply": 35,
+          "result": "loss",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171625732308",
+          "move": "Bg4",
+          "detail": "allowed an attack on your king",
+          "ply": 18,
+          "result": "win",
+          "punished": true
+        },
+        {
+          "url": "https://www.chess.com/game/live/171625732308",
+          "move": "c5",
+          "detail": "allowed an attack on your king",
+          "ply": 26,
+          "result": "win",
+          "punished": true
+        }
+      ]
+    },
+    {
+      "key": "blunder_timing",
+      "headline": "51% of your blunders happen in the middlegame.",
+      "detail": "Blunders by phase \u2014 opening 14, middlegame 21, endgame 6.",
+      "examples": []
+    },
+    {
+      "key": "mistakes_punished",
+      "headline": "You made 61 serious mistakes; opponents punished 39 of them.",
+      "detail": "The other 22 you got away with \u2014 still worth fixing, but they didn't cost you those games.",
+      "examples": []
+    }
+  ],
+  "decisive_losses": [
+    {
+      "url": "https://www.chess.com/game/live/171926465016",
+      "opponent": "zeesshhii",
+      "decisive": true,
+      "ply": 13,
+      "move_number": 7,
+      "san": "Nc4",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 77,
+      "win_after": 32
+    },
+    {
+      "url": "https://www.chess.com/game/live/171895203624",
+      "opponent": "bobyfizher",
+      "decisive": true,
+      "ply": 21,
+      "move_number": 11,
+      "san": "Re1",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 57,
+      "win_after": 19
+    },
+    {
+      "url": "https://www.chess.com/game/live/171892630360",
+      "opponent": "oddbadatchess",
+      "decisive": true,
+      "ply": 45,
+      "move_number": 23,
+      "san": "Qd3+",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 69,
+      "win_after": 29
+    },
+    {
+      "url": "https://www.chess.com/game/live/171890751494",
+      "opponent": "asaacpe",
+      "decisive": false,
+      "detail": "no single punished blunder \u2014 ground down gradually"
+    },
+    {
+      "url": "https://www.chess.com/game/live/171888774136",
+      "opponent": "phillipg990",
+      "decisive": true,
+      "ply": 34,
+      "move_number": 17,
+      "san": "Rfxe8",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 67,
+      "win_after": 17
+    },
+    {
+      "url": "https://www.chess.com/game/live/171886118910",
+      "opponent": "tutaputana3",
+      "decisive": true,
+      "ply": 22,
+      "move_number": 11,
+      "san": "e5",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 68,
+      "win_after": 33
+    },
+    {
+      "url": "https://www.chess.com/game/live/171845918668",
+      "opponent": "darkdevil-67",
+      "decisive": true,
+      "ply": 21,
+      "move_number": 11,
+      "san": "Qf3",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 65,
+      "win_after": 30
+    },
+    {
+      "url": "https://www.chess.com/game/live/171717333014",
+      "opponent": "h_arshu023",
+      "decisive": true,
+      "ply": 30,
+      "move_number": 15,
+      "san": "Qd5",
+      "kind": "allowed_tactic",
+      "detail": "allowed a tactic (-3)",
+      "win_before": 79,
+      "win_after": 18
+    },
+    {
+      "url": "https://www.chess.com/game/live/171716874016",
+      "opponent": "sbarbbqbby",
+      "decisive": true,
+      "ply": 65,
+      "move_number": 33,
+      "san": "Qxe6",
+      "kind": "hung_piece",
+      "detail": "hung a queen on e6 (-8)",
+      "win_before": 49,
+      "win_after": 0
+    },
+    {
+      "url": "https://www.chess.com/game/live/171713961310",
+      "opponent": "rickycatpa",
+      "decisive": true,
+      "ply": 52,
+      "move_number": 26,
+      "san": "Qxa2",
+      "kind": "hung_piece",
+      "detail": "hung a queen on a2 (-8)",
+      "win_before": 91,
+      "win_after": 17
+    },
+    {
+      "url": "https://www.chess.com/game/live/171708365092",
+      "opponent": "mjr9167",
+      "decisive": true,
+      "ply": 19,
+      "move_number": 10,
+      "san": "Re3",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 56,
+      "win_after": 16
+    },
+    {
+      "url": "https://www.chess.com/game/live/171666573960",
+      "opponent": "frank_abagnale86",
+      "decisive": true,
+      "ply": 52,
+      "move_number": 26,
+      "san": "Qxc5",
+      "kind": "allowed_tactic",
+      "detail": "allowed a tactic (-9)",
+      "win_before": 71,
+      "win_after": 44
+    },
+    {
+      "url": "https://www.chess.com/game/live/171655972036",
+      "opponent": "acciugapez",
+      "decisive": true,
+      "ply": 39,
+      "move_number": 20,
+      "san": "Bxf2",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 84,
+      "win_after": 0
+    },
+    {
+      "url": "https://www.chess.com/game/live/171634848716",
+      "opponent": "kashi_nair",
+      "decisive": true,
+      "ply": 42,
+      "move_number": 21,
+      "san": "Qxh1",
+      "kind": "allowed_tactic",
+      "detail": "allowed a tactic (-6)",
+      "win_before": 19,
+      "win_after": 3
+    },
+    {
+      "url": "https://www.chess.com/game/live/171630437352",
+      "opponent": "robinonpluto",
+      "decisive": true,
+      "ply": 45,
+      "move_number": 23,
+      "san": "g3",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 81,
+      "win_after": 0
+    },
+    {
+      "url": "https://www.chess.com/game/live/171627746584",
+      "opponent": "rlamb4",
+      "decisive": true,
+      "ply": 12,
+      "move_number": 6,
+      "san": "e6",
+      "kind": "hung_piece",
+      "detail": "hung a knight on e4 (-3)",
+      "win_before": 63,
+      "win_after": 18
+    },
+    {
+      "url": "https://www.chess.com/game/live/171626611646",
+      "opponent": "max29o7",
+      "decisive": true,
+      "ply": 71,
+      "move_number": 36,
+      "san": "Re7",
+      "kind": "blunder",
+      "detail": "blunder",
+      "win_before": 94,
+      "win_after": 21
+    }
+  ],
+  "games": [
+    {
+      "url": "https://www.chess.com/game/live/171931973074",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "heliosunio",
+      "my_rating": 635,
+      "opponent_rating": 637,
+      "move_classes": {
+        "best": 37,
+        "good": 8,
+        "inaccuracy": 3,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171926465016",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "zeesshhii",
+      "my_rating": 627,
+      "opponent_rating": 641,
+      "move_classes": {
+        "best": 5,
+        "good": 3,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 4
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Be5",
+          "detail": "hung a rook on a1 (-5) \u2014 opponent missed it",
+          "ply": 17
+        },
+        {
+          "name": "hung_piece",
+          "san": "Bxg7",
+          "detail": "hung a rook on a1 (-4) \u2014 opponent missed it",
+          "ply": 19
+        },
+        {
+          "name": "allowed_tactic",
+          "san": "Qh5+",
+          "detail": "allowed a tactic (-5)",
+          "ply": 21
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171895203624",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "bobyfizher",
+      "my_rating": 635,
+      "opponent_rating": 663,
+      "move_classes": {
+        "best": 15,
+        "good": 9,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171892630360",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "oddbadatchess",
+      "my_rating": 643,
+      "opponent_rating": 647,
+      "move_classes": {
+        "best": 21,
+        "good": 12,
+        "inaccuracy": 6,
+        "mistake": 4,
+        "blunder": 3
+      },
+      "tags": [
+        {
+          "name": "allowed_tactic",
+          "san": "Qxd7+",
+          "detail": "allowed a tactic (-10)",
+          "ply": 63
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171890751494",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "asaacpe",
+      "my_rating": 651,
+      "opponent_rating": 687,
+      "move_classes": {
+        "best": 30,
+        "good": 11,
+        "inaccuracy": 5,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Rc4",
+          "detail": "hung a rook on c4 (-5) \u2014 opponent missed it",
+          "ply": 52
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171888774136",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "phillipg990",
+      "my_rating": 659,
+      "opponent_rating": 669,
+      "move_classes": {
+        "best": 31,
+        "good": 7,
+        "inaccuracy": 4,
+        "mistake": 2,
+        "blunder": 2
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171886118910",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "tutaputana3",
+      "my_rating": 667,
+      "opponent_rating": 690,
+      "move_classes": {
+        "best": 13,
+        "good": 9,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171883400658",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "mampu1806",
+      "my_rating": 675,
+      "opponent_rating": 668,
+      "move_classes": {
+        "best": 16,
+        "good": 10,
+        "inaccuracy": 2,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171851658350",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "yartman",
+      "my_rating": 667,
+      "opponent_rating": 485,
+      "move_classes": {
+        "best": 9,
+        "good": 8,
+        "inaccuracy": 7,
+        "mistake": 2,
+        "blunder": 3
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171850328408",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "yartman",
+      "my_rating": 667,
+      "opponent_rating": 485,
+      "move_classes": {
+        "best": 17,
+        "good": 8,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171850114418",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "yartman",
+      "my_rating": 667,
+      "opponent_rating": 485,
+      "move_classes": {
+        "best": 12,
+        "good": 8,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171845918668",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "darkdevil-67",
+      "my_rating": 667,
+      "opponent_rating": 686,
+      "move_classes": {
+        "best": 29,
+        "good": 9,
+        "inaccuracy": 2,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171843951222",
+      "time_class": "rapid",
+      "result": "draw",
+      "opponent": "three_eyes_open",
+      "my_rating": 675,
+      "opponent_rating": 695,
+      "move_classes": {
+        "best": 42,
+        "good": 13,
+        "inaccuracy": 4,
+        "mistake": 2,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Qg5",
+          "detail": "hung a queen on g5 (-6)",
+          "ply": 32
+        },
+        {
+          "name": "hung_piece",
+          "san": "a5",
+          "detail": "hung a rook on f5 (-5)",
+          "ply": 98
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171717333014",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "h_arshu023",
+      "my_rating": 674,
+      "opponent_rating": 710,
+      "move_classes": {
+        "best": 8,
+        "good": 12,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 2
+      },
+      "tags": [
+        {
+          "name": "allowed_tactic",
+          "san": "Qd5",
+          "detail": "allowed a tactic (-3)",
+          "ply": 30
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171716874016",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "sbarbbqbby",
+      "my_rating": 681,
+      "opponent_rating": 677,
+      "move_classes": {
+        "best": 13,
+        "good": 12,
+        "inaccuracy": 6,
+        "mistake": 1,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Qb3",
+          "detail": "hung a knight on d2 (-3) \u2014 opponent missed it",
+          "ply": 39
+        },
+        {
+          "name": "hung_piece",
+          "san": "Qxe6",
+          "detail": "hung a queen on e6 (-8)",
+          "ply": 65
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171713961310",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "rickycatpa",
+      "my_rating": 690,
+      "opponent_rating": 701,
+      "move_classes": {
+        "best": 30,
+        "good": 11,
+        "inaccuracy": 4,
+        "mistake": 0,
+        "blunder": 4
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Qxa2",
+          "detail": "hung a queen on a2 (-8)",
+          "ply": 52
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171713605188",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "xaminex",
+      "my_rating": 698,
+      "opponent_rating": 677,
+      "move_classes": {
+        "best": 15,
+        "good": 6,
+        "inaccuracy": 3,
+        "mistake": 0,
+        "blunder": 2
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171710568762",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "badburtd",
+      "my_rating": 690,
+      "opponent_rating": 693,
+      "move_classes": {
+        "best": 24,
+        "good": 10,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 2
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Ng4",
+          "detail": "hung a knight on g4 (-3) \u2014 opponent missed it",
+          "ply": 38
+        },
+        {
+          "name": "hung_piece",
+          "san": "Qf1+",
+          "detail": "hung a queen on f1 (-9) \u2014 opponent missed it",
+          "ply": 66
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171709979242",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "dreguno",
+      "my_rating": 682,
+      "opponent_rating": 673,
+      "move_classes": {
+        "best": 46,
+        "good": 6,
+        "inaccuracy": 2,
+        "mistake": 2,
+        "blunder": 2
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171708365092",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "mjr9167",
+      "my_rating": 674,
+      "opponent_rating": 686,
+      "move_classes": {
+        "best": 9,
+        "good": 4,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171708194352",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "aravind0431",
+      "my_rating": 682,
+      "opponent_rating": 647,
+      "move_classes": {
+        "best": 7,
+        "good": 7,
+        "inaccuracy": 2,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171707715510",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "ccalma",
+      "my_rating": 674,
+      "opponent_rating": 673,
+      "move_classes": {
+        "best": 23,
+        "good": 11,
+        "inaccuracy": 1,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171666573960",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "frank_abagnale86",
+      "my_rating": 666,
+      "opponent_rating": 691,
+      "move_classes": {
+        "best": 20,
+        "good": 18,
+        "inaccuracy": 6,
+        "mistake": 2,
+        "blunder": 0
+      },
+      "tags": [
+        {
+          "name": "allowed_tactic",
+          "san": "Qxc5",
+          "detail": "allowed a tactic (-9)",
+          "ply": 52
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171655972036",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "acciugapez",
+      "my_rating": 674,
+      "opponent_rating": 690,
+      "move_classes": {
+        "best": 15,
+        "good": 1,
+        "inaccuracy": 1,
+        "mistake": 1,
+        "blunder": 2
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171634848716",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "kashi_nair",
+      "my_rating": 682,
+      "opponent_rating": 712,
+      "move_classes": {
+        "best": 13,
+        "good": 7,
+        "inaccuracy": 3,
+        "mistake": 0,
+        "blunder": 0
+      },
+      "tags": [
+        {
+          "name": "allowed_tactic",
+          "san": "Qxh1",
+          "detail": "allowed a tactic (-6)",
+          "ply": 42
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171630437352",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "robinonpluto",
+      "my_rating": 690,
+      "opponent_rating": 686,
+      "move_classes": {
+        "best": 15,
+        "good": 4,
+        "inaccuracy": 2,
+        "mistake": 0,
+        "blunder": 2
+      },
+      "tags": [
+        {
+          "name": "allowed_attack",
+          "san": "Bxa6",
+          "detail": "allowed an attack on your king",
+          "ply": 35
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171627746584",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "rlamb4",
+      "my_rating": 699,
+      "opponent_rating": 712,
+      "move_classes": {
+        "best": 20,
+        "good": 7,
+        "inaccuracy": 0,
+        "mistake": 0,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "e6",
+          "detail": "hung a knight on e4 (-3)",
+          "ply": 12
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171626611646",
+      "time_class": "rapid",
+      "result": "loss",
+      "opponent": "max29o7",
+      "my_rating": 707,
+      "opponent_rating": 725,
+      "move_classes": {
+        "best": 34,
+        "good": 13,
+        "inaccuracy": 4,
+        "mistake": 1,
+        "blunder": 2
+      },
+      "tags": []
+    },
+    {
+      "url": "https://www.chess.com/game/live/171625732308",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "congcctv",
+      "my_rating": 715,
+      "opponent_rating": 703,
+      "move_classes": {
+        "best": 16,
+        "good": 7,
+        "inaccuracy": 0,
+        "mistake": 2,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "allowed_attack",
+          "san": "Bg4",
+          "detail": "allowed an attack on your king",
+          "ply": 18
+        },
+        {
+          "name": "allowed_attack",
+          "san": "c5",
+          "detail": "allowed an attack on your king",
+          "ply": 26
+        }
+      ]
+    },
+    {
+      "url": "https://www.chess.com/game/live/171625029926",
+      "time_class": "rapid",
+      "result": "win",
+      "opponent": "filiberto-quevedo",
+      "my_rating": 707,
+      "opponent_rating": 667,
+      "move_classes": {
+        "best": 20,
+        "good": 8,
+        "inaccuracy": 2,
+        "mistake": 1,
+        "blunder": 1
+      },
+      "tags": [
+        {
+          "name": "hung_piece",
+          "san": "Bd7",
+          "detail": "hung a bishop on d7 (-3)",
+          "ply": 49
+        }
+      ]
+    }
+  ]
+}

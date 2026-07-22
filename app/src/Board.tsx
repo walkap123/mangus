@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { C } from './theme';
 
-const GLYPH: Record<string, string> = {
-  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚',
-};
+// Distinct white vs black glyphs — visually different (outline vs filled) even
+// if the platform ignores text color on these code points.
+const WHITE_G: Record<string, string> = { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' };
+const BLACK_G: Record<string, string> = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' };
 const FILES = 'abcdefgh';
 
 function fenGrid(fen: string): (string | null)[][] {
@@ -52,21 +53,27 @@ export function Board({
           style={[
             styles.sq,
             { width: sq, height: sq, backgroundColor: dark ? C.dark : C.light },
-            ring ? { borderWidth: 3, borderColor: ring } : null,
           ]}
         >
+          {ring ? <View style={[styles.hl, { backgroundColor: ring }]} /> : null}
           {ch ? (
-            <Text
-              style={[
-                styles.pc,
-                {
-                  fontSize: sq * 0.72,
-                  color: ch === ch.toUpperCase() ? '#fff' : '#111',
-                },
-              ]}
-            >
-              {GLYPH[ch.toLowerCase()]}
-            </Text>
+            (() => {
+              const white = ch === ch.toUpperCase();
+              return (
+                <Text
+                  style={{
+                    fontSize: sq * 0.82,
+                    color: white ? '#f8f8f8' : '#1b1b1b',
+                    // contrasting halo so each color reads on any square
+                    textShadowColor: white ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.65)',
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 3,
+                  }}
+                >
+                  {(white ? WHITE_G : BLACK_G)[ch.toLowerCase()]}
+                </Text>
+              );
+            })()
           ) : null}
         </View>
       );
@@ -84,5 +91,5 @@ const styles = StyleSheet.create({
   board: { borderRadius: 8, overflow: 'hidden' },
   row: { flexDirection: 'row' },
   sq: { alignItems: 'center', justifyContent: 'center' },
-  pc: { fontWeight: '400', textShadowColor: '#0008', textShadowRadius: 2 },
+  hl: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.5 },
 });
