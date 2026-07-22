@@ -1,0 +1,16 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# mangus local data
+*.db
+*.sqlite
+*.sqlite3
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
