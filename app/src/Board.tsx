@@ -1,11 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { C } from './theme';
 
-// Distinct white vs black glyphs — visually different (outline vs filled) even
-// if the platform ignores text color on these code points.
-const WHITE_G: Record<string, string> = { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕', k: '♔' };
-const BLACK_G: Record<string, string> = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' };
+// FEN char -> piece image (uppercase = white, lowercase = black). require()
+// paths must be static literals for the Metro bundler.
+const PIECES: Record<string, any> = {
+  P: require('../assets/pieces/white-pawn.png'),
+  N: require('../assets/pieces/white-knight.png'),
+  B: require('../assets/pieces/white-bishop.png'),
+  R: require('../assets/pieces/white-rook.png'),
+  Q: require('../assets/pieces/white-queen.png'),
+  K: require('../assets/pieces/white-king.png'),
+  p: require('../assets/pieces/black-pawn.png'),
+  n: require('../assets/pieces/black-knight.png'),
+  b: require('../assets/pieces/black-bishop.png'),
+  r: require('../assets/pieces/black-rook.png'),
+  q: require('../assets/pieces/black-queen.png'),
+  k: require('../assets/pieces/black-king.png'),
+};
 const FILES = 'abcdefgh';
 
 function fenGrid(fen: string): (string | null)[][] {
@@ -33,7 +45,7 @@ export function Board({
   fen: string;
   flip: boolean;
   size: number;
-  highlights?: Record<string, string>; // square -> ring color
+  highlights?: Record<string, string>; // square -> highlight color
 }) {
   const grid = fenGrid(fen);
   const sq = size / 8;
@@ -50,30 +62,11 @@ export function Board({
       cells.push(
         <View
           key={name}
-          style={[
-            styles.sq,
-            { width: sq, height: sq, backgroundColor: dark ? C.dark : C.light },
-          ]}
+          style={[styles.sq, { width: sq, height: sq, backgroundColor: dark ? C.dark : C.light }]}
         >
           {ring ? <View style={[styles.hl, { backgroundColor: ring }]} /> : null}
           {ch ? (
-            (() => {
-              const white = ch === ch.toUpperCase();
-              return (
-                <Text
-                  style={{
-                    fontSize: sq * 0.82,
-                    color: white ? '#f8f8f8' : '#1b1b1b',
-                    // contrasting halo so each color reads on any square
-                    textShadowColor: white ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.65)',
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 3,
-                  }}
-                >
-                  {(white ? WHITE_G : BLACK_G)[ch.toLowerCase()]}
-                </Text>
-              );
-            })()
+            <Image source={PIECES[ch]} style={{ width: sq * 0.86, height: sq * 0.86 }} resizeMode="contain" />
           ) : null}
         </View>
       );
