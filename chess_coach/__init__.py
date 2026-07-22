@@ -15,7 +15,7 @@ from .classify import (
     MoveClass, MoveJudgment, MoveClassifier, Thresholds, win_prob, summarize,
 )
 from .tag import (
-    Tag, Detector, HungPieceDetector, tag_game,
+    Tag, Detector, HungPieceDetector, AllowedTacticDetector, tag_game,
     static_exchange_eval, best_free_capture,
 )
 from .coach import (
@@ -28,7 +28,7 @@ __all__ = [
     "Store", "StockfishEval", "EngineNotFound", "find_stockfish",
     "MoveClass", "MoveJudgment", "MoveClassifier", "Thresholds",
     "win_prob", "summarize",
-    "Tag", "Detector", "HungPieceDetector", "tag_game",
+    "Tag", "Detector", "HungPieceDetector", "AllowedTacticDetector", "tag_game",
     "static_exchange_eval", "best_free_capture",
     "CoachReport", "Finding", "GameAnalysis", "analyze_game", "run", "render_html",
 ]

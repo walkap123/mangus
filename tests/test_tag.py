@@ -5,7 +5,8 @@ import chess
 from chess_coach.models import Color, Game, Player, Ply
 from chess_coach.classify import MoveClass, MoveJudgment
 from chess_coach.tag import (
-    HungPieceDetector, tag_game, static_exchange_eval, best_free_capture,
+    HungPieceDetector, AllowedTacticDetector, tag_game,
+    static_exchange_eval, best_free_capture,
 )
 
 # Black to move; White just parked a knight on e5 where a pawn wins it free.
@@ -131,6 +132,50 @@ def test_no_tag_on_even_trade():
     print("  gate: capture that's an even trade (big swing) -> no tag OK")
 
 
+def test_allowed_tactic():
+    # White (me) plays Re1, allowing a knight fork that wins the rook over the
+    # next moves: ...Nf3+ Kf1 Nxe1. Multi-move, not a one-move hang.
+    p5 = Ply(5, 3, Color.WHITE, "Re1", "a1e1",
+             "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1", "6k1/8/8/6n1/8/8/8/4R1K1 b - - 1 1")
+    p6 = Ply(6, 3, Color.BLACK, "Nf3+", "g5f3",
+             p5.fen_after, "6k1/8/8/8/8/5n2/8/4R1K1 w - - 2 2")
+    p7 = Ply(7, 4, Color.WHITE, "Kf1", "g1f1",
+             p6.fen_after, "6k1/8/8/8/8/5n2/8/4RK2 b - - 3 2")
+    p8 = Ply(8, 4, Color.BLACK, "Nxe1", "f3e1",
+             p7.fen_after, "6k1/8/8/8/8/8/8/4nK2 w - - 0 3")
+    game = Game(
+        game_id="g", url="", played_at=None, time_class="rapid",
+        time_control="600", rated=True, rules="chess", eco=None,
+        white=Player("me", 1500), black=Player("them", 1500),
+        perspective=Color.WHITE, moves=[p5, p6, p7, p8])
+
+    punished = MoveJudgment(5, Color.WHITE, "Re1", "a1e1", MoveClass.BLUNDER,
+                            0.60, 0.20, 0.40, "a1a2", False,
+                            win_prob_after_reply=0.20, retained_loss=0.40, punished=True)
+    tags = AllowedTacticDetector().detect(game, [punished])
+    assert len(tags) == 1 and tags[0].name == "allowed_tactic", tags
+    assert tags[0].material_cp == 500 and "allowed a tactic (-5)" in tags[0].detail
+
+    # got away with it (not punished) -> no tag
+    unpun = MoveJudgment(5, Color.WHITE, "Re1", "a1e1", MoveClass.BLUNDER,
+                         0.60, 0.55, 0.05, "a1a2", False,
+                         win_prob_after_reply=0.55, retained_loss=0.05, punished=False)
+    assert AllowedTacticDetector().detect(game, [unpun]) == []
+
+    # a one-move free capture is a hung piece, NOT an allowed tactic (no overlap)
+    ph = Ply(5, 3, Color.WHITE, "Ne5", "c4e5",
+             "4k3/8/3p4/8/2N5/8/8/4K3 w - - 0 1", HUNG_KNIGHT)
+    gh = Game(game_id="g2", url="", played_at=None, time_class="rapid",
+              time_control="600", rated=True, rules="chess", eco=None,
+              white=Player("me", 1500), black=Player("them", 1500),
+              perspective=Color.WHITE, moves=[ph])
+    jh = MoveJudgment(5, Color.WHITE, "Ne5", "c4e5", MoveClass.BLUNDER,
+                      0.60, 0.20, 0.40, "a1a2", False,
+                      win_prob_after_reply=0.20, retained_loss=0.40, punished=True)
+    assert AllowedTacticDetector().detect(gh, [jh]) == []
+    print("  allowed_tactic: fork detected; not-punished & hung-piece both skip OK")
+
+
 if __name__ == "__main__":
     print("Running tag tests...")
     test_see_free_piece()
@@ -141,4 +186,5 @@ if __name__ == "__main__":
     test_no_tag_when_no_free_capture()
     test_punished_flag()
     test_no_tag_on_even_trade()
+    test_allowed_tactic()
     print("ALL PASSED")

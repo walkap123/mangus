@@ -27,7 +27,9 @@ from .eval import StockfishEval
 from .ingest import ChessComClient, DEFAULT_UA
 from .models import Game, GameResult
 from .store import Store
-from .tag import Detector, HungPieceDetector, Tag, tag_game
+from .tag import (
+    AllowedTacticDetector, Detector, HungPieceDetector, Tag, tag_game,
+)
 
 
 def _phase(move_number: int) -> str:
@@ -134,6 +136,26 @@ class CoachReport:
                 detail=f"Punishment: {', '.join(bits)}. An unpunished hang isn't "
                        f"why you lost — but it's a habit to fix before someone "
                        f"does take it.",
+                examples=examples,
+            ))
+
+        # 1b) Allowed tactics: a move that let the opponent win material by force
+        #     over the next few moves (all punished by construction).
+        allowed = [(a, t) for a in self.analyses for t in a.tags
+                   if t.name == "allowed_tactic"]
+        if allowed:
+            examples = [{
+                "url": a.game.url, "move": t.san, "detail": t.detail,
+                "ply": t.ply_number, "result": a.game.result.value,
+                "punished": True,
+            } for a, t in allowed[:6]]
+            games_with = {id(a) for a, _ in allowed}
+            out.append(Finding(
+                key="allowed_tactics",
+                headline=f"You allowed a material-winning tactic {len(allowed)} "
+                         f"times across {len(games_with)} of {n_games} games.",
+                detail="A move that let the opponent win material by force over "
+                       "the next few moves — and they took it every time here.",
                 examples=examples,
             ))
 
@@ -271,7 +293,7 @@ def run(
 ) -> CoachReport:
     """Fetch, analyze, and aggregate a user's recent games into a CoachReport."""
     classifier = classifier or MoveClassifier()
-    detectors = detectors or [HungPieceDetector()]
+    detectors = detectors or [HungPieceDetector(), AllowedTacticDetector()]
     client = ChessComClient(user_agent=ua)
 
     analyses: list[GameAnalysis] = []

@@ -192,6 +192,72 @@ class HungPieceDetector:
         return tags
 
 
+# Material values for counting (no king — it's never captured).
+_MATERIAL = {chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP: 300,
+             chess.ROOK: 500, chess.QUEEN: 900}
+
+
+def _my_material(board: chess.Board, me_white: bool) -> int:
+    """(my material − opponent material) in centipawns, from my POV."""
+    diff = sum(v * (len(board.pieces(pt, chess.WHITE))
+                    - len(board.pieces(pt, chess.BLACK)))
+               for pt, v in _MATERIAL.items())
+    return diff if me_white else -diff
+
+
+class AllowedTacticDetector:
+    """Flags a move that let the opponent win material by force over the next
+    few moves — a combination, not a one-move hang.
+
+    Fires only when the move was a real error AND actually **punished** (the
+    opponent kept the advantage in the real game) AND material actually shifts
+    to the opponent within `lookahead` plies. A one-move free capture is left to
+    HungPieceDetector, so the two never double-label the same move.
+    """
+
+    name = "allowed_tactic"
+
+    def __init__(self, *, min_swing: float = 0.15, min_material: int = 300,
+                 lookahead: int = 6):
+        self.min_swing = min_swing
+        self.min_material = min_material
+        self.lookahead = lookahead
+
+    def detect(self, game: Game, judgments: list[MoveJudgment]) -> list[Tag]:
+        jmap = {j.ply_number: j for j in judgments}
+        by_num = {p.ply_number: p for p in game.moves}
+        if not by_num:
+            return []
+        max_ply = max(by_num)
+        me_white = game.perspective is Color.WHITE
+        tags: list[Tag] = []
+        for ply in game.moves:
+            j = jmap.get(ply.ply_number)
+            if j is None or not j.punished or j.win_prob_lost < self.min_swing:
+                continue
+            after = chess.Board(ply.fen_after)
+            # A one-move free capture is a hung piece, not a combination — skip.
+            cap = best_free_capture(after)
+            if cap is not None:
+                net = cap[0] - _move_capture_value(ply.fen_before, ply.uci)
+                if net >= self.min_material:
+                    continue
+            # Did material actually swing to the opponent over the next few plies?
+            end_ply = by_num.get(min(ply.ply_number + self.lookahead, max_ply))
+            if end_ply is None or end_ply.ply_number <= ply.ply_number:
+                continue
+            lost = _my_material(after, me_white) - _my_material(
+                chess.Board(end_ply.fen_after), me_white)
+            if lost < self.min_material:
+                continue
+            tags.append(Tag(
+                name=self.name, ply_number=ply.ply_number, color=ply.color,
+                san=ply.san, detail=f"allowed a tactic (-{lost // 100})",
+                win_prob_lost=j.win_prob_lost, material_cp=lost, punished=True,
+            ))
+        return tags
+
+
 def tag_game(
     game: Game,
     judgments: list[MoveJudgment],
@@ -199,7 +265,7 @@ def tag_game(
 ) -> list[Tag]:
     """Run detectors over a classified game; tags sorted by ply."""
     if detectors is None:
-        detectors = [HungPieceDetector()]
+        detectors = [HungPieceDetector(), AllowedTacticDetector()]
     tags: list[Tag] = []
     for d in detectors:
         tags.extend(d.detect(game, judgments))

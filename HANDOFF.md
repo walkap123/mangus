@@ -26,9 +26,11 @@ evals (cache-first), classifies your moves, tags them, and aggregates across
 games into findings, emitted as JSON (the UI data contract) + an HTML view.
 Run: `python -m chess_coach.coach USERNAME --max 8 --depth 12 --ua "..."`.
 
-tag layer: `tag.py` has a hung-piece detector (SEE + eval-swing gate, net of
-what the move itself captured — validated on real games). More detectors
-(missed tactic, endgame type, time trouble) are the next moat work.
+tag layer: `tag.py` has two detectors — hung-piece (immediate free capture) and
+allowed-tactic (opponent wins material by force over the next few plies;
+punished-gated; defers to hung-piece for one-move captures). Both net out what
+the move itself captured and separate the mistake from whether it was punished.
+Next detectors: allowed-mate / missed-tactic / time-trouble.
 ```
 
 Under all of it: **`store.py`** (SQLite) persists ingested games and caches
