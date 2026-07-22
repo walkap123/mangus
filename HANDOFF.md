@@ -19,7 +19,7 @@ cross-game, holistic feedback is what makes it a coach rather than an analyzer.
 
 ```
 ingest  ->  eval (Stockfish)  ->  classify moves  ->  tag  ->  coach
- [DONE]        [DONE]              [next]            [the moat]   [later]
+ [DONE]        [DONE]              [DONE]            [the moat]   [later]
 ```
 
 Under all of it: **`store.py`** (SQLite) persists ingested games and caches

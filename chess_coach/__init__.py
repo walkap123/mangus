@@ -11,11 +11,16 @@ from .models import Color, Evaluation, Game, GameResult, Player, Ply
 from .ingest import ChessComClient, ChessComError, PlayerNotFound
 from .store import Store
 from .eval import StockfishEval, EngineNotFound, find_stockfish
+from .classify import (
+    MoveClass, MoveJudgment, MoveClassifier, Thresholds, win_prob, summarize,
+)
 
 __all__ = [
     "ChessComClient", "ChessComError", "PlayerNotFound",
     "Game", "Ply", "Player", "Color", "GameResult", "Evaluation",
     "Store", "StockfishEval", "EngineNotFound", "find_stockfish",
+    "MoveClass", "MoveJudgment", "MoveClassifier", "Thresholds",
+    "win_prob", "summarize",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
