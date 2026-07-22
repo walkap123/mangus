@@ -20,11 +20,11 @@ Engine-agnostic: it consumes `Evaluation`s via any object with `.evaluate(fen)`
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Optional, Protocol
 
-from .models import Color, Evaluation, Game, Ply
+from .models import Color, Evaluation, Game, GameResult, Ply
 
 # Logistic steepness mapping centipawns -> win probability. Our own choice:
 # ~+100cp ≈ 60%, ~+300cp ≈ 77%, ~+600cp ≈ 92%. Tune in one place.
@@ -69,10 +69,16 @@ class MoveJudgment:
     uci: str
     move_class: MoveClass
     win_prob_before: float     # mover POV, best play available
-    win_prob_after: float      # mover POV, what they actually got
-    win_prob_lost: float       # >= 0
+    win_prob_after: float      # mover POV, engine best-play eval AFTER the move
+    win_prob_lost: float       # >= 0, the *potential* damage (assumes best reply)
     best_move: Optional[str]   # engine's best move (UCI) at fen_before
     played_best: bool
+    # ---- actual consequence (filled by classify_game; needs game context) ----
+    # win_prob_after is hypothetical: it assumes the opponent punishes perfectly.
+    # These record what actually happened on the board:
+    win_prob_after_reply: Optional[float] = None  # mover POV after opponent's REAL reply
+    retained_loss: Optional[float] = None          # win% that actually stuck (>= 0)
+    punished: Optional[bool] = None                # opponent kept most of the damage?
 
 
 class Evaluator(Protocol):
@@ -80,8 +86,11 @@ class Evaluator(Protocol):
 
 
 class MoveClassifier:
-    def __init__(self, thresholds: Thresholds = Thresholds()):
+    def __init__(self, thresholds: Thresholds = Thresholds(), *, punish_ratio: float = 0.5):
         self.t = thresholds
+        # A move counts as "punished" if, after the opponent's ACTUAL reply, at
+        # least this fraction of the win% it handed over actually stuck.
+        self.punish_ratio = punish_ratio
 
     def judge(
         self, ply: Ply, eval_before: Evaluation, eval_after: Evaluation
@@ -127,14 +136,42 @@ class MoveClassifier:
         Pulls evals through `evaluator` (cache-first when it's a StockfishEval
         backed by a Store), so this costs nothing beyond warming the cache.
         """
+        by_num = {p.ply_number: p for p in game.moves}
         out: list[MoveJudgment] = []
         for ply in game.moves:
             if mine_only and ply.color is not game.perspective:
                 continue
             eval_before = evaluator.evaluate(ply.fen_before)
             eval_after = evaluator.evaluate(ply.fen_after)
-            out.append(self.judge(ply, eval_before, eval_after))
+            j = self.judge(ply, eval_before, eval_after)
+            out.append(self._with_consequence(j, by_num, game, evaluator))
         return out
+
+    def _with_consequence(
+        self, j: MoveJudgment, by_num: dict[int, Ply], game: Game,
+        evaluator: Evaluator,
+    ) -> MoveJudgment:
+        """Attach what the move ACTUALLY cost, from the game's real continuation.
+
+        The position the mover faces two plies later (after the opponent's real
+        reply) is their next move's `fen_before` — already evaluated when we
+        judge that move, so this is free from the cache. If the mover has no
+        next move, the game ended within one reply; fall back to the result.
+        """
+        nxt2 = by_num.get(j.ply_number + 2)
+        if nxt2 is not None:
+            ev = evaluator.evaluate(nxt2.fen_before)  # mover is to move -> mover POV
+            wp_reply = win_prob(ev.cp, ev.mate)
+        else:
+            wp_reply = {GameResult.WIN: 1.0, GameResult.LOSS: 0.0,
+                        GameResult.DRAW: 0.5}.get(game.result)
+            if wp_reply is None:
+                return j
+        retained = max(0.0, j.win_prob_before - wp_reply)
+        punished = (j.win_prob_lost > 1e-9
+                    and retained >= self.punish_ratio * j.win_prob_lost)
+        return replace(j, win_prob_after_reply=wp_reply, retained_loss=retained,
+                       punished=punished)
 
 
 def summarize(judgments: list[MoveJudgment]) -> dict[MoveClass, int]:

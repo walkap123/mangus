@@ -158,21 +158,51 @@ class CoachReport:
                        f"endgame {phase_counts['endgame']}.",
             ))
 
-        # 3) Blunder rate in losses vs. wins
-        def blunders(a: GameAnalysis) -> int:
-            return sum(j.move_class is MoveClass.BLUNDER for j in a.judgments)
-        losses = [a for a in self.analyses if a.game.result is GameResult.LOSS]
-        wins = [a for a in self.analyses if a.game.result is GameResult.WIN]
-        if losses and wins:
-            bl = sum(blunders(a) for a in losses) / len(losses)
-            bw = sum(blunders(a) for a in wins) / len(wins)
-            if bl >= bw + 0.5:
-                out.append(Finding(
-                    key="blunders_decide_games",
-                    headline=f"Your losses average {bl:.1f} blunders vs. {bw:.1f} in your wins.",
-                    detail="Blunders, not slow positional losses, are deciding most of "
-                           "your games — cutting them is the fastest rating gain.",
-                ))
+        # 3) How many serious mistakes actually got punished (habit vs cost).
+        serious = [j for a in self.analyses for j in a.judgments
+                   if j.move_class in (MoveClass.MISTAKE, MoveClass.BLUNDER)]
+        if serious:
+            punished = sum(1 for j in serious if j.punished)
+            out.append(Finding(
+                key="mistakes_punished",
+                headline=f"You made {len(serious)} serious mistakes; opponents "
+                         f"punished {punished} of them.",
+                detail=f"The other {len(serious) - punished} you got away with — "
+                       f"still worth fixing, but they didn't cost you those games.",
+            ))
+        return out
+
+    # ---- lens 2: what actually cost you the games you lost ----
+    def decisive_losses(self) -> list[dict]:
+        """For each lost game, the single move that actually lost it: the biggest
+        win% drop that the opponent *punished* and you didn't recover from."""
+        out: list[dict] = []
+        for a in self.analyses:
+            if a.game.result is not GameResult.LOSS:
+                continue
+            by_num = {p.ply_number: p for p in a.game.moves}
+            cands = [j for j in a.judgments
+                     if j.punished and j.win_prob_lost >= 0.15]
+            entry = {"url": a.game.url, "opponent": a.game.opponent.username}
+            if cands:
+                j = max(cands, key=lambda j: j.retained_loss or 0.0)
+                ply = by_num[j.ply_number]
+                tag = next((t for t in a.tags if t.ply_number == j.ply_number), None)
+                entry.update({
+                    "decisive": True,
+                    "ply": j.ply_number, "move_number": ply.move_number,
+                    "san": j.san,
+                    "kind": tag.name if tag else j.move_class.value,
+                    "detail": tag.detail if tag else f"{j.move_class.value}",
+                    "win_before": round(100 * j.win_prob_before),
+                    "win_after": round(100 * (j.win_prob_after_reply or 0.0)),
+                })
+            else:
+                entry.update({
+                    "decisive": False,
+                    "detail": "no single punished blunder — ground down gradually",
+                })
+            out.append(entry)
         return out
 
     # ---- serialization (the UI contract) ----
@@ -181,6 +211,9 @@ class CoachReport:
         totals = self._totals()
         my_moves = sum(totals.values())
         best_pct = round(100 * totals[MoveClass.BEST] / my_moves, 1) if my_moves else 0.0
+        serious = [j for a in self.analyses for j in a.judgments
+                   if j.move_class in (MoveClass.MISTAKE, MoveClass.BLUNDER)]
+        punished = sum(1 for j in serious if j.punished)
         return {
             "username": self.username,
             "generated_at": self.generated_at,
@@ -193,8 +226,12 @@ class CoachReport:
                 "blunders_per_game": round(totals[MoveClass.BLUNDER] / len(self.analyses), 2)
                                      if self.analyses else 0.0,
                 "best_pct": best_pct,
+                "serious_mistakes": len(serious),
+                "mistakes_punished": punished,
             },
+            # lens 1: every mistake (learning). lens 2: what actually lost games.
             "findings": [f.to_dict() for f in self.findings()],
+            "decisive_losses": self.decisive_losses(),
             "games": [
                 {
                     "url": a.game.url,
@@ -287,6 +324,25 @@ def render_html(report: CoachReport) -> str:
         findings_html = '<p class="muted">No recurring weaknesses detected yet ' \
                         '(more detectors coming).</p>'
 
+    decisive_html = ""
+    for e in d["decisive_losses"]:
+        if e.get("decisive"):
+            decisive_html += (
+                f'<div class="finding"><div class="headline">'
+                f'<a href="{esc(e["url"])}" target="_blank">vs {esc(e["opponent"])}</a>: '
+                f'move {esc(e["move_number"])} {esc(e["san"])} — {esc(e["detail"])}</div>'
+                f'<div class="muted">win chance {esc(e["win_before"])}% → '
+                f'{esc(e["win_after"])}% after their reply</div></div>'
+            )
+        else:
+            decisive_html += (
+                f'<div class="finding"><div class="headline">'
+                f'<a href="{esc(e["url"])}" target="_blank">vs {esc(e["opponent"])}</a></div>'
+                f'<div class="muted">{esc(e["detail"])}</div></div>'
+            )
+    if not decisive_html:
+        decisive_html = '<p class="muted">No losses in this sample.</p>'
+
     rows = ""
     for g in d["games"]:
         mc = g["move_classes"]
@@ -330,8 +386,10 @@ def render_html(report: CoachReport) -> str:
   <div class="stat"><b>{s['best_pct']}%</b>best moves</div>
   <div class="stat"><b>{s['move_classes']['blunder']}</b>blunders</div>
 </div>
-<h2>What to work on</h2>
+<h2>All your mistakes <span class="muted">— habits to fix</span></h2>
 {findings_html}
+<h2>Why you actually lost <span class="muted">— the deciding move each loss</span></h2>
+{decisive_html}
 <h2>Games</h2>
 <table><thead><tr><th>type</th><th>result</th><th>opponent</th><th>rating</th>
 <th>blun</th><th>mist</th><th>inacc</th><th>tags</th></tr></thead>

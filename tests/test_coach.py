@@ -59,11 +59,18 @@ def test_coach_report():
     keys = [f["key"] for f in d["findings"]]
     assert "hung_pieces" in keys, keys
 
-    # JSON is serializable and HTML renders without error
+    # lens 2: this lost game should have an identified deciding move
+    dec = d["decisive_losses"]
+    assert len(dec) == 1 and dec[0]["decisive"] is True, dec
+    assert dec[0]["kind"] == "hung_piece", dec
+    assert dec[0]["win_before"] > dec[0]["win_after"], dec  # win chance dropped
+
+    # JSON is serializable and HTML renders both lenses without error
     json.loads(report.to_json())
     html = render_html(report)
     assert "mastapate" in html and "hung a knight" in html
-    print("  coach: analyze -> aggregate -> findings/JSON/HTML OK")
+    assert "Why you actually lost" in html
+    print("  coach: two-lens (habits + decisive losses) / JSON / HTML OK")
 
 
 if __name__ == "__main__":
