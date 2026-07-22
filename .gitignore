@@ -14,3 +14,7 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# generated reports (personal)
+report.json
+report.html

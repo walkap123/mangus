@@ -91,6 +91,25 @@ def test_no_tag_when_no_free_capture():
     print("  gate: swing without a material-winning capture -> no tag OK")
 
 
+def test_no_tag_on_even_trade():
+    # Regression (found on real games): Qxd7 captures a QUEEN, gets recaptured
+    # by a knight. Big eval swing (bad trade), but net material is 0 -> it is a
+    # blunder, NOT a hung piece. Must not be tagged.
+    before = "5nk1/3q4/8/8/8/3Q4/8/6K1 w - - 0 1"   # white Qd3, black Qd7 (def by Nf8)
+    after = "5nk1/3Q4/8/8/8/8/8/6K1 b - - 0 1"      # after Qxd7, black to move
+    ply = Ply(63, 32, Color.WHITE, "Qxd7+", "d3d7", before, after)
+    game = Game(
+        game_id="g", url="", played_at=None, time_class="rapid",
+        time_control="600", rated=True, rules="chess", eco=None,
+        white=Player("me", 1500), black=Player("them", 1500),
+        perspective=Color.WHITE, moves=[ply],
+    )
+    j = MoveJudgment(63, Color.WHITE, "Qxd7+", "d3d7", MoveClass.BLUNDER,
+                     0.60, 0.30, 0.30, "a1a2", False)
+    assert tag_game(game, [j]) == []
+    print("  gate: capture that's an even trade (big swing) -> no tag OK")
+
+
 if __name__ == "__main__":
     print("Running tag tests...")
     test_see_free_piece()
@@ -99,4 +118,5 @@ if __name__ == "__main__":
     test_hung_piece_detected()
     test_no_tag_when_swing_too_small()
     test_no_tag_when_no_free_capture()
+    test_no_tag_on_even_trade()
     print("ALL PASSED")

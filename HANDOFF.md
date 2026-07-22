@@ -19,11 +19,16 @@ cross-game, holistic feedback is what makes it a coach rather than an analyzer.
 
 ```
 ingest  ->  eval (Stockfish)  ->  classify moves  ->  tag  ->  coach
- [DONE]        [DONE]              [DONE]           [WIP: moat]  [later]
+ [DONE]        [DONE]              [DONE]           [WIP: moat]  [1st pass]
 
-tag layer started: `tag.py` has a hung-piece detector (SEE + eval-swing gate).
-More detectors (missed tactic, endgame type, time trouble) + cross-game
-aggregation are next.
+The whole pipeline now runs end-to-end: `coach.py` fetches a user's games,
+evals (cache-first), classifies your moves, tags them, and aggregates across
+games into findings, emitted as JSON (the UI data contract) + an HTML view.
+Run: `python -m chess_coach.coach USERNAME --max 8 --depth 12 --ua "..."`.
+
+tag layer: `tag.py` has a hung-piece detector (SEE + eval-swing gate, net of
+what the move itself captured — validated on real games). More detectors
+(missed tactic, endgame type, time trouble) are the next moat work.
 ```
 
 Under all of it: **`store.py`** (SQLite) persists ingested games and caches

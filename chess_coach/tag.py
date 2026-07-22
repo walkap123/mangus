@@ -98,6 +98,18 @@ def static_exchange_eval(board: chess.Board, move: chess.Move) -> int:
     return captured_value - _see_recapture(board, to_sq, board.turn)
 
 
+def _move_capture_value(fen_before: str, uci: str) -> int:
+    """Material (centipawns) the mover captured with their own move, else 0."""
+    board = chess.Board(fen_before)
+    move = chess.Move.from_uci(uci)
+    if not board.is_capture(move):
+        return 0
+    if board.is_en_passant(move):
+        return PIECE_VALUE[chess.PAWN]
+    target = board.piece_at(move.to_square)
+    return PIECE_VALUE[target.piece_type] if target else 0
+
+
 def best_free_capture(board: chess.Board) -> Optional[tuple[int, int, int]]:
     """Best material-winning capture for the side to move.
 
@@ -151,15 +163,18 @@ class HungPieceDetector:
             if cap is None:
                 continue
             see_cp, to_sq, victim_type = cap
-            if see_cp < self.min_material:
+            # If the move was itself a capture, net out what it grabbed — losing
+            # a queen to win a knight is a -6 blunder, not -9.
+            net_cp = see_cp - _move_capture_value(ply.fen_before, ply.uci)
+            if net_cp < self.min_material:
                 continue
             piece = chess.piece_name(victim_type)        # "knight"
             square = chess.square_name(to_sq)            # "e5"
             tags.append(Tag(
                 name=self.name, ply_number=ply.ply_number, color=ply.color,
                 san=ply.san,
-                detail=f"hung a {piece} on {square} (-{see_cp // 100})",
-                win_prob_lost=j.win_prob_lost, material_cp=see_cp,
+                detail=f"hung a {piece} on {square} (-{net_cp // 100})",
+                win_prob_lost=j.win_prob_lost, material_cp=net_cp,
                 victim_square=square, victim_piece=piece,
             ))
         return tags
