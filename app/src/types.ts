@@ -31,6 +31,7 @@ export interface Game {
   startFen: string;
   plies: Ply[];
   posEvals: number[] | null;
+  bestMoves: ({ uci: string; san: string } | null)[] | null;
   accuracy: number | null;
   elo: number | null;
 }

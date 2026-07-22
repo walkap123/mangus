@@ -121,20 +121,33 @@ def _game_data(a: "GameAnalysis", evaluator) -> dict:
         })
 
     pos_evals = None
+    best_moves = None
     if evaluator is not None and game.moves:
         my_white = game.perspective is Color.WHITE
         fens = [game.moves[0].fen_before] + [p.fen_after for p in game.moves]
         pos_evals = []
+        best_moves = []          # engine's best move at each position (or None if game over)
         for f in fens:
-            w = _white_winprob(f, evaluator)
-            pos_evals.append(round((w if my_white else 1.0 - w) * 100))
+            b = chess.Board(f)
+            if b.is_game_over():
+                white_wp = (0.0 if b.turn == chess.WHITE else 1.0) if b.is_checkmate() else 0.5
+                pos_evals.append(round((white_wp if my_white else 1.0 - white_wp) * 100))
+                best_moves.append(None)
+                continue
+            ev = evaluator.evaluate(f)
+            wp = win_prob(ev.cp, ev.mate)
+            white_wp = wp if b.turn == chess.WHITE else 1.0 - wp
+            pos_evals.append(round((white_wp if my_white else 1.0 - white_wp) * 100))
+            best_moves.append(
+                {"uci": ev.best_move, "san": _best_san(f, ev.best_move)}
+                if ev.best_move else None)
 
     return {
         "white": game.white.username, "black": game.black.username,
         "opponent": game.opponent.username, "perspective": game.perspective.value,
         "result": game.result.value, "timeClass": game.time_class, "url": game.url,
         "startFen": game.moves[0].fen_before if game.moves else START_FEN,
-        "plies": plies, "posEvals": pos_evals,
+        "plies": plies, "posEvals": pos_evals, "bestMoves": best_moves,
         "accuracy": _accuracy(a.judgments),
         "elo": None,  # filled by viewer_data (needs the batch to anchor)
     }

@@ -183,18 +183,24 @@ function Review({ game, initialPly, onBack }: {
   const mv = ply > 0 ? game.plies[ply - 1] : null;
   const boardSize = Math.min(Dimensions.get('window').width - 56, 420);
 
-  let boardFen = positions[ply];
+  const len = game.plies.length;
+  const bestAt = game.bestMoves ? game.bestMoves[ply] : null;      // best move HERE
+  const nextMove = ply < len ? game.plies[ply] : null;            // move played from here
+  const showComparison = showBest && !!bestAt && !!nextMove && nextMove.mine
+    && !!nextMove.cls && nextMove.cls !== 'best' && nextMove.cls !== 'good';
+
+  const boardFen = positions[ply];
   const highlights: Record<string, string> = {};
-  if (showBest && mv && mv.mine && mv.bestUci) {
-    boardFen = positions[ply - 1];
-    const [pf, pt] = sqOf(mv.uci); highlights[pf] = C.red; highlights[pt] = C.red;
-    const [bf, bt] = sqOf(mv.bestUci); highlights[bf] = C.green; highlights[bt] = C.green;
+  if (showBest && bestAt) {
+    const [bf, bt] = sqOf(bestAt.uci); highlights[bf] = C.green; highlights[bt] = C.green;
+    if (showComparison && nextMove) {
+      const [pf, pt] = sqOf(nextMove.uci); highlights[pf] = C.red; highlights[pt] = C.red;
+    }
   } else if (mv) {
     const [f, t] = sqOf(mv.uci); highlights[f] = '#f6f069'; highlights[t] = '#f6f069';
     if (mv.tagSquare) highlights[mv.tagSquare] = C.red;
   }
   const ev = game.posEvals ? game.posEvals[ply] : null;
-  const len = game.plies.length;
   const go = (target: number, sl: Slide) => {
     if (target < 0 || target > len) return;
     setShowBest(false); setSlide(sl); setPly(target);
@@ -237,7 +243,16 @@ function Review({ game, initialPly, onBack }: {
       </View>
 
       <View style={styles.anno}>
-        {!mv ? (
+        {showBest && bestAt ? (
+          <>
+            <Text style={styles.annoMove}>Best move: <Text style={{ color: C.green }}>{bestAt.san}</Text></Text>
+            {showComparison && nextMove && nextMove.cls ? (
+              <Text style={styles.tag}>you played {nextMove.san} · {CLS[nextMove.cls].l}</Text>
+            ) : (
+              <Text style={styles.muted}>the engine's top move in this position</Text>
+            )}
+          </>
+        ) : !mv ? (
           <Text style={styles.annoMove}>Starting position — you are {game.perspective}</Text>
         ) : (
           <>
@@ -253,19 +268,16 @@ function Review({ game, initialPly, onBack }: {
               <Text style={styles.muted}>your win chance {mv.winB}% → {mv.winA}%</Text>
             ) : null}
             {mv.tag ? <Text style={styles.tag}>{mv.tag}</Text> : null}
-            {showBest && mv.mine && mv.bestUci ? (
-              <Text style={styles.bestInfo}>
-                <Text style={{ color: C.red }}>You played {mv.san}</Text> — best was{' '}
-                <Text style={{ color: C.green, fontWeight: '700' }}>{mv.bestSan}</Text>
-              </Text>
-            ) : null}
-            {mv.mine && mv.bestUci && mv.cls !== 'best' && mv.cls !== 'good' ? (
-              <Pressable style={styles.bestBtn} onPress={() => { setSlide(null); setShowBest((s) => !s); }}>
-                <Text style={styles.bestBtnText}>{showBest ? '↩ back to the game' : 'What should I have played?'}</Text>
-              </Pressable>
-            ) : null}
           </>
         )}
+        {bestAt ? (
+          <Pressable style={[styles.bestBtn, showBest ? styles.bestBtnAlt : null]}
+            onPress={() => { setSlide(null); setShowBest((s) => !s); }}>
+            <Text style={[styles.bestBtnText, showBest ? { color: C.fg } : null]}>
+              {showBest ? '↩ back to the game' : '💡 Show best move'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.moveList}>
@@ -336,6 +348,7 @@ const styles = StyleSheet.create({
   tag: { color: C.red, fontWeight: '700', marginTop: 6 },
   bestInfo: { color: C.fg, marginTop: 8 },
   bestBtn: { backgroundColor: C.green, borderRadius: 10, paddingVertical: 11, alignItems: 'center', marginTop: 12 },
+  bestBtnAlt: { backgroundColor: C.card, borderWidth: 1, borderColor: C.line },
   bestBtnText: { color: '#062', fontWeight: '800' },
   moveList: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 16, gap: 2 },
   moveItem: { color: C.fg, fontSize: 14, paddingHorizontal: 4, paddingVertical: 2 },
