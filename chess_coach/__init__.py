@@ -21,6 +21,7 @@ from .tag import (
 from .coach import (
     CoachReport, Finding, GameAnalysis, analyze_game, run, render_html,
 )
+from .viewer import render_viewer
 
 __all__ = [
     "ChessComClient", "ChessComError", "PlayerNotFound",
@@ -31,6 +32,7 @@ __all__ = [
     "Tag", "Detector", "HungPieceDetector", "AllowedTacticDetector",
     "AllowedAttackDetector", "tag_game", "static_exchange_eval", "best_free_capture",
     "CoachReport", "Finding", "GameAnalysis", "analyze_game", "run", "render_html",
+    "render_viewer",
 ]
 
 __version__ = "0.5.0"

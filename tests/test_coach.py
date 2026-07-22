@@ -70,7 +70,18 @@ def test_coach_report():
     html = render_html(report)
     assert "mastapate" in html and "hung a knight" in html
     assert "Why you actually lost" in html
-    print("  coach: two-lens (habits + decisive losses) / JSON / HTML OK")
+
+    # board viewer: embeds valid per-move JSON with the moves and a tag
+    from chess_coach.viewer import render_viewer
+    v = render_viewer(report)
+    marker = "const DATA = "
+    payload = v.split(marker, 1)[1].split(";\n", 1)[0]
+    embedded = json.loads(payload)
+    assert embedded["username"] == "mastapate"
+    plies = embedded["games"][0]["plies"]
+    assert plies[0]["san"] == "e4" and "fen" in plies[0]
+    assert any(p["tag"] and "hung a knight" in p["tag"] for p in plies)
+    print("  coach: two-lens + board-viewer data / JSON / HTML OK")
 
 
 if __name__ == "__main__":

@@ -472,9 +472,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     finally:
         store.close()
 
+    from .viewer import render_viewer
     Path(f"{args.out}.json").write_text(report.to_json())
     Path(f"{args.out}.html").write_text(render_html(report))
-    print(f"\nWrote {args.out}.json and {args.out}.html "
+    Path(f"{args.out}_board.html").write_text(render_viewer(report))
+    print(f"\nWrote {args.out}.json, {args.out}.html and {args.out}_board.html "
           f"({len(report.analyses)} games).", file=sys.stderr)
     return 0
 

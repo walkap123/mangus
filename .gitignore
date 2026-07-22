@@ -18,3 +18,4 @@ venv/
 # generated reports (personal)
 report.json
 report.html
+report_board.html
