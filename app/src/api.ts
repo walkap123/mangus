@@ -17,7 +17,7 @@ export async function analyze(
   base: string,
   opts: { max?: number; depth?: number } = {}
 ): Promise<Payload> {
-  const { max = 8, depth = 12 } = opts;
+  const { max = 20, depth = 12 } = opts;
   const url = `${base}/analyze?username=${encodeURIComponent(username)}&max=${max}&depth=${depth}`;
   const res = await fetch(url);
   if (!res.ok) {

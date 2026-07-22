@@ -307,7 +307,7 @@ def run(
     evaluator: StockfishEval,
     classifier: Optional[MoveClassifier] = None,
     detectors: Optional[list[Detector]] = None,
-    max_games: int = 10,
+    max_games: int = 20,
     time_classes: Optional[set[str]] = None,
     rated_only: bool = False,
     ua: str = DEFAULT_UA,
@@ -449,7 +449,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     p = argparse.ArgumentParser(description="Analyze a chess.com user's recent games.")
     p.add_argument("username")
-    p.add_argument("--max", type=int, default=10, help="max games to analyze")
+    p.add_argument("--max", type=int, default=20, help="max games to analyze")
     p.add_argument("--depth", type=int, default=12, help="Stockfish search depth")
     p.add_argument("--time-class", default=None, help="comma list: bullet,blitz,rapid,daily")
     p.add_argument("--rated", action="store_true")

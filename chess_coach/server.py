@@ -57,7 +57,7 @@ def health() -> dict:
 @app.get("/analyze")
 def analyze(
     username: str,
-    max: int = Query(8, ge=1, le=50),
+    max: int = Query(20, ge=1, le=50),   # enough games to draw real conclusions
     depth: int = Query(12, ge=6, le=22),
     time_class: Optional[str] = None,
 ) -> dict:
