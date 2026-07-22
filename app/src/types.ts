@@ -31,6 +31,8 @@ export interface Game {
   startFen: string;
   plies: Ply[];
   posEvals: number[] | null;
+  accuracy: number | null;
+  elo: number | null;
 }
 
 export interface Finding {

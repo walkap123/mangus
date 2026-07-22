@@ -124,6 +124,9 @@ function Games({ payload, onOpen, onBack }: {
               <Text style={styles.rowTitle}>{recent.timeClass} · {recent.opponent}</Text>
               <Text style={[styles.pill, { color: rc(recent.result) }]}>{recent.result} · review ›</Text>
             </View>
+            {recent.accuracy != null && (
+              <Text style={styles.muted}>Accuracy {recent.accuracy}% · played like ~{recent.elo}</Text>
+            )}
           </Pressable>
         </>
       )}
@@ -133,6 +136,9 @@ function Games({ payload, onOpen, onBack }: {
         <Pressable key={i} style={styles.row} onPress={() => onOpen(i + 1, 0)}>
           <View style={styles.rowMain}>
             <Text style={styles.rowTitle} numberOfLines={1}>{g.timeClass} · {g.opponent}</Text>
+            {g.accuracy != null && (
+              <Text style={styles.rowSub}>{g.accuracy}% accuracy · played like ~{g.elo}</Text>
+            )}
           </View>
           <Text style={[styles.pill, { color: rc(g.result) }]}>{g.result}</Text>
         </Pressable>
@@ -191,7 +197,10 @@ function Review({ game, initialPly, onBack }: {
   return (
     <ScrollView contentContainerStyle={styles.wrap}>
       <Pressable onPress={onBack}><Text style={styles.back}>‹ games</Text></Pressable>
-      <Text style={styles.muted}>vs {game.opponent} · {game.timeClass} · {game.result}</Text>
+      <Text style={styles.muted}>
+        vs {game.opponent} · {game.timeClass} · {game.result}
+        {game.accuracy != null ? ` · ${game.accuracy}% · ~${game.elo}` : ''}
+      </Text>
 
       <View style={styles.boardRow}>
         {ev != null && (

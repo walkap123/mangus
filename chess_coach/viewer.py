@@ -20,11 +20,12 @@ so it doubles as the UI spec for the iOS port.
 from __future__ import annotations
 
 import json
+import math
 from typing import TYPE_CHECKING, Optional
 
 import chess
 
-from .classify import win_prob
+from .classify import MoveJudgment, win_prob
 from .models import Color
 
 if TYPE_CHECKING:
@@ -44,6 +45,31 @@ def _white_winprob(fen: str, evaluator) -> float:
     ev = evaluator.evaluate(fen)
     wp = win_prob(ev.cp, ev.mate)          # side-to-move POV
     return wp if b.turn == chess.WHITE else 1.0 - wp
+
+
+def _accuracy(judgments: "list[MoveJudgment]") -> Optional[float]:
+    """Our own per-game accuracy over the user's moves (0-100).
+
+    Each move scores by how much win% it lost vs. best play (exponential decay,
+    our own constant); the game score is their mean. Not identical to chess.com's
+    number, but the same idea: clean play scores high, blunders drag it down.
+    """
+    if not judgments:
+        return None
+    accs = []
+    for j in judgments:
+        wl = max(0.0, j.win_prob_before - j.win_prob_after) * 100.0  # win% points lost
+        accs.append(max(1.0, min(100.0, 100.0 * math.exp(-0.045 * wl))))
+    # harmonic mean: your worst moves weigh heaviest, so blunders actually bite
+    return round(len(accs) / sum(1.0 / a for a in accs), 1)
+
+
+def _elo_estimate(accuracy: Optional[float]) -> Optional[int]:
+    """Rough 'you played like ~N' rating from accuracy. An estimate, not a rating —
+    centered so a typical club game (~70% harmonic accuracy) lands near 1400."""
+    if accuracy is None:
+        return None
+    return int(max(600, min(2400, round(1400 + 35 * (accuracy - 70)))))
 
 
 def _best_san(fen_before: str, uci: Optional[str]) -> Optional[str]:
@@ -92,12 +118,14 @@ def _game_data(a: "GameAnalysis", evaluator) -> dict:
             w = _white_winprob(f, evaluator)
             pos_evals.append(round((w if my_white else 1.0 - w) * 100))
 
+    accuracy = _accuracy(a.judgments)
     return {
         "white": game.white.username, "black": game.black.username,
         "opponent": game.opponent.username, "perspective": game.perspective.value,
         "result": game.result.value, "timeClass": game.time_class, "url": game.url,
         "startFen": game.moves[0].fen_before if game.moves else START_FEN,
         "plies": plies, "posEvals": pos_evals,
+        "accuracy": accuracy, "elo": _elo_estimate(accuracy),
     }
 
 
