@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { analyzeOnDevice, Progress } from './src/engine/analyzeOnDevice';
 import { SfEngineHost } from './src/engine/SfEngineHost';
 import { EngineTest } from './src/EngineTest';
-import { Board, Slide } from './src/Board';
+import { Board, Slide, Arrow } from './src/Board';
 import { C, CLS, accColor, resultColor } from './src/theme';
 import type { Payload, Game, Finding } from './src/types';
 
@@ -297,10 +297,11 @@ function Review({ game, initialPly, onBack }: {
 
   const boardFen = positions[ply];
   const highlights: Record<string, string> = {};
+  const arrows: Arrow[] = [];
   if (showBest && bestAt) {
-    const [bf, bt] = sqOf(bestAt.uci); highlights[bf] = C.green; highlights[bt] = C.green;
+    arrows.push({ from: bestAt.uci.slice(0, 2), to: bestAt.uci.slice(2, 4), color: C.green });
     if (showComparison && nextMove) {
-      const [pf, pt] = sqOf(nextMove.uci); highlights[pf] = C.red; highlights[pt] = C.red;
+      arrows.push({ from: nextMove.uci.slice(0, 2), to: nextMove.uci.slice(2, 4), color: C.red });
     }
   } else if (mv) {
     const [f, t] = sqOf(mv.uci); highlights[f] = '#f6f069'; highlights[t] = '#f6f069';
@@ -336,7 +337,7 @@ function Review({ game, initialPly, onBack }: {
             <Text style={styles.evalNum}>{ev}%</Text>
           </View>
         )}
-        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights} slide={showBest ? null : slide} />
+        <Board fen={boardFen} flip={flip} size={boardSize} highlights={highlights} slide={showBest ? null : slide} arrows={arrows} />
       </View>
 
       <View style={styles.controls}>

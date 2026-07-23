@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Image, StyleSheet, Animated } from 'react-native';
+import Svg, { Line, Polygon } from 'react-native-svg';
 import { C } from './theme';
+
+export interface Arrow { from: string; to: string; color: string }
 
 // FEN char -> piece image (uppercase = white, lowercase = black).
 const PIECES: Record<string, any> = {
@@ -54,10 +57,10 @@ function SlidingPiece({ source, from, to, pieceSize }: {
 }
 
 export function Board({
-  fen, flip, size, highlights = {}, slide = null,
+  fen, flip, size, highlights = {}, slide = null, arrows = [],
 }: {
   fen: string; flip: boolean; size: number;
-  highlights?: Record<string, string>; slide?: Slide;
+  highlights?: Record<string, string>; slide?: Slide; arrows?: Arrow[];
 }) {
   const sq = size / 8;
   const pieceSize = sq * 0.86;
@@ -68,6 +71,11 @@ export function Board({
     const file = name.charCodeAt(0) - 97, rank = +name[1];
     const col = flip ? 7 - file : file, row = flip ? rank - 1 : 8 - rank;
     return { x: col * sq + pad, y: row * sq + pad };
+  };
+  const center = (name: string) => {
+    const file = name.charCodeAt(0) - 97, rank = +name[1];
+    const col = flip ? 7 - file : file, row = flip ? rank - 1 : 8 - rank;
+    return { x: (col + 0.5) * sq, y: (row + 0.5) * sq };
   };
 
   // square + highlight layer
@@ -122,6 +130,25 @@ export function Board({
         {pieces}
         {slider}
       </View>
+      {arrows.length > 0 && (
+        <Svg width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none">
+          {arrows.map((a, i) => {
+            const f = center(a.from), t = center(a.to);
+            const ang = Math.atan2(t.y - f.y, t.x - f.x);
+            const headLen = sq * 0.4, headW = sq * 0.34;
+            const tipX = t.x - Math.cos(ang) * sq * 0.06, tipY = t.y - Math.sin(ang) * sq * 0.06;
+            const bx = tipX - Math.cos(ang) * headLen, by = tipY - Math.sin(ang) * headLen;
+            const px = -Math.sin(ang), py = Math.cos(ang);
+            const pts = `${tipX},${tipY} ${bx + px * headW / 2},${by + py * headW / 2} ${bx - px * headW / 2},${by - py * headW / 2}`;
+            return (
+              <React.Fragment key={i}>
+                <Line x1={f.x} y1={f.y} x2={bx} y2={by} stroke={a.color} strokeWidth={sq * 0.15} strokeLinecap="round" opacity={0.85} />
+                <Polygon points={pts} fill={a.color} opacity={0.85} />
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      )}
     </View>
   );
 }
