@@ -4,7 +4,8 @@ import {
   ActivityIndicator, StyleSheet, Dimensions, StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { analyze, defaultApiBase } from './src/api';
+import { analyzeOnDevice, Progress } from './src/engine/analyzeOnDevice';
+import { SfEngineHost } from './src/engine/SfEngineHost';
 import { EngineTest } from './src/EngineTest';
 import { Board, Slide } from './src/Board';
 import { C, CLS, accColor, resultColor } from './src/theme';
@@ -37,38 +38,34 @@ export default function App() {
   const [tab, setTab] = useState<'games' | 'patterns'>('games');
   const [hydrated, setHydrated] = useState(false);
   const [username, setUsername] = useState('');
-  const [apiBase, setApiBase] = useState(defaultApiBase());
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [payload, setPayload] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gameIndex, setGameIndex] = useState(0);
   const [initialPly, setInitialPly] = useState(0);
 
-  async function run(u: string = username, b: string = apiBase) {
+  async function run(u: string = username) {
     setError(null);
+    setProgress(null);
     setScreen('loading');
     try {
-      const p = await analyze(u.trim(), b.trim());
+      const p = await analyzeOnDevice(u.trim(), { maxGames: 8, depth: 12, onProgress: setProgress });
       setPayload(p);
       setTab('games');
       setScreen('main');
       AsyncStorage.setItem('username', u.trim());
-      AsyncStorage.setItem('apiBase', b.trim());
     } catch (e: any) {
-      setError(e.message || 'Could not reach the server.');
+      setError(e.message || 'Analysis failed.');
       setScreen('home');
     }
   }
 
-  // remember the last username/server and jump straight in on launch
+  // remember the last username and jump straight in on launch
   useEffect(() => {
     (async () => {
       try {
-        const [u, b] = await Promise.all([
-          AsyncStorage.getItem('username'),
-          AsyncStorage.getItem('apiBase'),
-        ]);
-        if (b) setApiBase(b);
-        if (u) { setUsername(u); setHydrated(true); run(u, b || apiBase); return; }
+        const u = await AsyncStorage.getItem('username');
+        if (u) { setUsername(u); setHydrated(true); run(u); return; }
       } catch {}
       setHydrated(true);
     })();
@@ -94,16 +91,21 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar barStyle="light-content" />
       {screen === 'home' && (
-        <Home username={username} setUsername={setUsername} apiBase={apiBase}
-          setApiBase={setApiBase} error={error} onRun={run}
-          onEngineTest={() => setScreen('enginetest')} />
+        <Home username={username} setUsername={setUsername}
+          error={error} onRun={run} onEngineTest={() => setScreen('enginetest')} />
       )}
       {screen === 'enginetest' && <EngineTest onBack={() => setScreen('home')} />}
       {screen === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator color={C.accent} size="large" />
           <Text style={[styles.muted, { marginTop: 14 }]}>Analyzing {username}'s games…</Text>
-          <Text style={[styles.muted, { fontSize: 12 }]}>first run is slower — Stockfish is thinking</Text>
+          <Text style={[styles.muted, { fontSize: 12 }]}>
+            {progress
+              ? (progress.total ? `${progress.done} / ${progress.total} positions` : progress.phase)
+              : 'starting…'}
+          </Text>
+          <Text style={[styles.muted, { fontSize: 11, marginTop: 4 }]}>Stockfish, running on your phone</Text>
+          <SfEngineHost style={{ width: 130, height: 96, marginTop: 22, borderRadius: 8, opacity: 0.9 }} />
         </View>
       )}
       {screen === 'main' && payload && (
@@ -157,21 +159,19 @@ function TabBar({ tab, setTab }: { tab: 'games' | 'patterns'; setTab: (t: 'games
   );
 }
 
-function Home({ username, setUsername, apiBase, setApiBase, error, onRun, onEngineTest }: any) {
+function Home({ username, setUsername, error, onRun, onEngineTest }: any) {
   return (
     <ScrollView contentContainerStyle={styles.homeWrap}>
       <Text style={styles.brand}>♞ mangus</Text>
-      <Text style={[styles.muted, { marginBottom: 28 }]}>Your chess.com games, coached.</Text>
+      <Text style={[styles.muted, { marginBottom: 28 }]}>Your chess.com games, coached — on your phone.</Text>
 
       <View style={styles.card}>
         <Text style={styles.label}>chess.com username</Text>
         <TextInput style={styles.input} value={username} onChangeText={setUsername}
-          autoCapitalize="none" autoCorrect={false} placeholder="username" placeholderTextColor={C.muted} />
-        <Text style={[styles.label, { marginTop: 14 }]}>server</Text>
-        <TextInput style={styles.input} value={apiBase} onChangeText={setApiBase}
-          autoCapitalize="none" autoCorrect={false} />
+          autoCapitalize="none" autoCorrect={false} placeholder="username" placeholderTextColor={C.muted}
+          onSubmitEditing={() => onRun()} returnKeyType="go" />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Pressable style={styles.primary} onPress={onRun}>
+        <Pressable style={styles.primary} onPress={() => onRun()}>
           <Text style={styles.primaryText}>Analyze my games</Text>
         </Pressable>
       </View>
