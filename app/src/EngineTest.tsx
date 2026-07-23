@@ -53,8 +53,10 @@ export function EngineTest({ onBack }: { onBack: () => void }) {
         </Text>
         {rows.map((r, i) => <Text key={i} style={styles.row}>{r}</Text>)}
 
-        <Text style={{ color: C.muted, fontSize: 12, marginTop: 18 }}>engine log (visible so iOS doesn't throttle it):</Text>
-        <View style={{ height: 150, borderWidth: 1, borderColor: C.line, borderRadius: 8, marginTop: 6, overflow: 'hidden' }}>
+        <Text style={{ color: C.muted, fontSize: 13, marginTop: 20 }}>
+          ↓ read-only engine output (don't tap in it — tap the depth buttons above):
+        </Text>
+        <View style={{ height: 320, borderWidth: 1, borderColor: C.line, borderRadius: 8, marginTop: 6, overflow: 'hidden' }}>
           <WebView
             ref={ref}
             source={{ uri: SF_URL }}
