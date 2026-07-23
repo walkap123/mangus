@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="background:#1a1a1c;color:#e8e8ea;font:15px -apple-system;padding:14px">
+<div id="log">loading engine…</div>
+<!-- served from cdn.jsdelivr.net, same origin as this page -> worker + wasm resolve -->
+<script src="https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js"></script>
+<script>
+var RN = window.ReactNativeWebView;
+function post(o){ if (RN) RN.postMessage(JSON.stringify(o)); }
+function log(s){ var el=document.getElementById('log'); if(el) el.innerText=s; }
+var sf=null, t0=0, lastScore='';
+window.onerror=function(m){ post({type:'error',msg:''+m}); log('error: '+m); };
+try {
+  if (typeof STOCKFISH === 'undefined') throw 'stockfish.js did not load';
+  sf = STOCKFISH();
+  sf.onmessage = function(line){
+    if (typeof line !== 'string') line = (line && line.data) || '';
+    if (line.indexOf('uciok') >= 0) { post({type:'ready'}); log('engine ready'); }
+    else if (line.indexOf('info') === 0 && line.indexOf(' score ') >= 0) { lastScore = line; }
+    else if (line.indexOf('bestmove') === 0) {
+      var m = lastScore.match(/score (cp|mate) (-?\d+)/);
+      post({type:'result', bestmove: line.split(' ')[1], ms: Date.now()-t0,
+            scoreType: m?m[1]:null, score: m?parseInt(m[2],10):null});
+      log('best '+line.split(' ')[1]+'  ('+(Date.now()-t0)+' ms)');
+    }
+  };
+  sf.postMessage('uci');
+} catch(e){ post({type:'error', msg:'init: '+e}); log('init error: '+e); }
+window.runEval = function(fen, depth){
+  if (!sf){ post({type:'error', msg:'engine not ready'}); return; }
+  lastScore=''; t0=Date.now(); log('thinking… depth '+depth);
+  sf.postMessage('position fen '+fen);
+  sf.postMessage('go depth '+depth);
+};
+</script></body></html>
