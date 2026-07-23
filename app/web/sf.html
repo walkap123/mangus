@@ -3,7 +3,7 @@
 <body style="background:#1a1a1c;color:#e8e8ea;font:15px -apple-system;padding:14px">
 <div id="log">loading engine…</div>
 <!-- served from cdn.jsdelivr.net, same origin as this page -> worker + wasm resolve -->
-<script src="https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js"></script>
+<script src="stockfish.js"></script>
 <script>
 var RN = window.ReactNativeWebView;
 function post(o){ if (RN) RN.postMessage(JSON.stringify(o)); }
