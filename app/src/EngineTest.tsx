@@ -2,11 +2,10 @@ import React, { useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { C } from './theme';
+import { SF_HTML } from './engine/sfInline'; // engine inlined — no network/hosting
 
 // A real middlegame position (Italian) so the engine has to actually think.
 const TEST_FEN = 'r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 6';
-// Page + stockfish served same-origin from githack (correct content-types).
-const SF_URL = 'https://rawcdn.githack.com/walkap123/mangus/85abd9ebe8e62dc0796fa9f2b842f0d3c6bce5c3/app/web/sf.html';
 
 export function EngineTest({ onBack }: { onBack: () => void }) {
   const ref = useRef<WebView>(null);
@@ -59,7 +58,7 @@ export function EngineTest({ onBack }: { onBack: () => void }) {
         <View style={{ height: 320, borderWidth: 1, borderColor: C.line, borderRadius: 8, marginTop: 6, overflow: 'hidden' }}>
           <WebView
             ref={ref}
-            source={{ uri: SF_URL }}
+            source={{ html: SF_HTML }}
             originWhitelist={['*']}
             javaScriptEnabled
             onMessage={onMessage}
