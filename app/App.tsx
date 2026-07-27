@@ -176,9 +176,11 @@ function Home({ username, setUsername, error, onRun, onEngineTest }: any) {
         </Pressable>
       </View>
 
-      <Pressable onPress={onEngineTest} style={{ marginTop: 20, alignItems: 'center' }}>
-        <Text style={{ color: C.muted, fontSize: 13 }}>🔧 Test on-device engine</Text>
-      </Pressable>
+      {__DEV__ && (
+        <Pressable onPress={onEngineTest} style={{ marginTop: 20, alignItems: 'center' }}>
+          <Text style={{ color: C.muted, fontSize: 13 }}>🔧 Test on-device engine</Text>
+        </Pressable>
+      )}
     </ScrollView>
   );
 }

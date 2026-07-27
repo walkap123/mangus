@@ -8,10 +8,20 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#1a1a1c",
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a1a1c",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 170
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.walkap.mangus",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -20,9 +30,7 @@
       "package": "com.walkap.mangus",
       "adaptiveIcon": {
         "backgroundColor": "#1a1a1c",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
