@@ -1,17 +1,22 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Mangus",
+    "slug": "mangus",
+    "scheme": "mangus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1a1a1c",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.walkap.mangus",
+      "buildNumber": "1"
     },
     "android": {
+      "package": "com.walkap.mangus",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1a1a1c",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
