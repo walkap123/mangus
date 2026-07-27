@@ -49,7 +49,7 @@ export default function App() {
     setProgress(null);
     setScreen('loading');
     try {
-      const p = await analyzeOnDevice(u.trim(), { maxGames: 8, depth: 12, onProgress: setProgress });
+      const p = await analyzeOnDevice(u.trim(), { maxGames: 8, depth: 10, onProgress: setProgress });
       setPayload(p);
       setTab('games');
       setScreen('main');
